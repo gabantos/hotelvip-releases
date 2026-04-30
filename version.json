@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "fecha": "2026-04-12",
+  "changelog": [
+    "Release inicial HotelVIP SaaS v1.0.0",
+    "12 modulos: Auth, Habitaciones, Huespedes, Reservas, Caja, HSK, Servicios, Facturacion, Sync, Notif, Canales, Reportes",
+    "System tray con watchdog BD y auto-reconexion",
+    "Configuracion via .INI",
+    "Multi-tenant por schema"
+  ],
+  "url_descarga": "https://github.com/gabantos/hotelvip-releases/releases/download/v1.0.0/HotelVip_v1.0.0.zip"
+}
