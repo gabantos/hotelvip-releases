@@ -1,17 +1,44 @@
 @echo off
 chcp 65001 >nul
-echo ============================================
-echo  HOTELVIP - Instalacion Inicial
-echo  SistemasVIP - Cusco Peru
-echo ============================================
-echo.
+setlocal EnableDelayedExpansion
+title HotelVIP - Instalacion
+color 0B
+
+REM ============================================================
+REM  HOTELVIP - Instalacion inicial en la PC del hotel
+REM  SistemasVIP - Cusco, Peru
+REM
+REM  Crea la base de datos, aplica TODO el schema (01-04 + las
+REM  migraciones de SQL\updates), deja configurado el .ini y
+REM  opcionalmente hace que el sistema arranque solo con Windows.
+REM ============================================================
 
 cd /d "%~dp0"
 
-echo REQUISITOS:
-echo  - MariaDB 10.6+ instalado y corriendo
-echo  - Puerto 3306 disponible
-echo  - Puerto 9006 disponible
+echo ============================================================
+echo   HOTELVIP - INSTALACION
+echo   SistemasVIP - Cusco Peru
+echo ============================================================
+echo.
+echo  Requisitos: MariaDB 10.6+ instalado y corriendo.
+echo.
+
+REM ── Buscar el cliente de MariaDB ──
+set "MYSQL="
+where mysql >nul 2>&1 && set "MYSQL=mysql"
+if not defined MYSQL (
+    for /d %%D in ("C:\Program Files\MariaDB*") do (
+        if exist "%%D\bin\mysql.exe" set "MYSQL=%%D\bin\mysql.exe"
+    )
+)
+if not defined MYSQL (
+    color 0C
+    echo  [ERROR] No se encontro MariaDB en esta PC.
+    echo  Instalelo desde https://mariadb.org/download/ y vuelva a ejecutar.
+    pause
+    exit /b 1
+)
+echo  MariaDB encontrado: %MYSQL%
 echo.
 
 set /p CONFIRMAR="Continuar con la instalacion? (S/N): "
@@ -21,73 +48,134 @@ if /i not "%CONFIRMAR%"=="S" (
     exit /b 0
 )
 
-:: Datos de conexion BD
+REM ── Datos de conexion ──
 echo.
-echo === Configuracion de Base de Datos ===
-set /p DB_HOST="Servidor MariaDB (default: 127.0.0.1): "
+echo === Base de datos ===
+set /p DB_HOST="Servidor (Enter = 127.0.0.1): "
 if "%DB_HOST%"=="" set DB_HOST=127.0.0.1
-
-set /p DB_PORT="Puerto (default: 3306): "
+set /p DB_PORT="Puerto (Enter = 3306): "
 if "%DB_PORT%"=="" set DB_PORT=3306
-
-set /p DB_USER="Usuario (default: root): "
-if "%DB_USER%"=="" set DB_USER=root
-
-set /p DB_PASS="Clave: "
-
-set /p DB_NAME="Nombre BD (default: hotel_001): "
-if "%DB_NAME%"=="" set DB_NAME=hotel_001
-
-:: Crear base de datos
-echo.
-echo Creando base de datos %DB_NAME%...
-mysql -h %DB_HOST% -P %DB_PORT% -u %DB_USER% -p%DB_PASS% -e "CREATE DATABASE IF NOT EXISTS %DB_NAME% CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci;"
-
-if errorlevel 1 (
-    echo [ERROR] No se pudo crear la base de datos.
-    echo Verifique los datos de conexion y que MariaDB este corriendo.
+set /p DB_ADMIN="Usuario administrador de MariaDB (Enter = root): "
+if "%DB_ADMIN%"=="" set DB_ADMIN=root
+set /p DB_ADMPASS="Clave de ese usuario: "
+set /p DB_NAME="Nombre de la base a crear (ej: hotelvip_andinapardo): "
+if "%DB_NAME%"=="" (
+    color 0C
+    echo  [ERROR] El nombre de la base es obligatorio.
     pause
     exit /b 1
 )
 
-:: Ejecutar scripts SQL de estructura
-if exist "SQL\01_Estructura.sql" (
-    echo Creando estructura de tablas...
-    mysql -h %DB_HOST% -P %DB_PORT% -u %DB_USER% -p%DB_PASS% %DB_NAME% < "SQL\01_Estructura.sql"
-)
-
-if exist "SQL\02_Vistas.sql" (
-    echo Creando vistas...
-    mysql -h %DB_HOST% -P %DB_PORT% -u %DB_USER% -p%DB_PASS% %DB_NAME% < "SQL\02_Vistas.sql"
-)
-
-if exist "SQL\03_StoredProcedures.sql" (
-    echo Creando stored procedures...
-    mysql -h %DB_HOST% -P %DB_PORT% -u %DB_USER% -p%DB_PASS% %DB_NAME% < "SQL\03_StoredProcedures.sql"
-)
-
-if exist "SQL\04_DatosIniciales.sql" (
-    echo Insertando datos iniciales...
-    mysql -h %DB_HOST% -P %DB_PORT% -u %DB_USER% -p%DB_PASS% %DB_NAME% < "SQL\04_DatosIniciales.sql"
-)
-
-:: Actualizar INI con datos de conexion
 echo.
-echo Configurando HotelVip_Server.ini...
-if exist HotelVip_Server.ini (
-    powershell -Command "(Get-Content 'HotelVip_Server.ini') -replace 'Servidor=.*', 'Servidor=%DB_HOST%' -replace 'Puerto=3306', 'Puerto=%DB_PORT%' -replace 'BaseDatos=.*', 'BaseDatos=%DB_NAME%' -replace 'Usuario=root', 'Usuario=%DB_USER%' -replace 'Clave=', 'Clave=%DB_PASS%' | Set-Content 'HotelVip_Server.ini'"
-)
+echo === Puerto del sistema ===
+set /p API_PORT="Puerto de HotelVIP (Enter = 9006): "
+if "%API_PORT%"=="" set API_PORT=9006
+
+REM MYSQL_PWD evita que la clave quede en la linea de comandos
+set "MYSQL_PWD=%DB_ADMPASS%"
 
 echo.
-echo ============================================
-echo  Instalacion completada!
+echo [1/5] Creando base de datos %DB_NAME%...
+"%MYSQL%" -h %DB_HOST% -P %DB_PORT% -u %DB_ADMIN% --skip-ssl -e "CREATE DATABASE IF NOT EXISTS %DB_NAME% CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci;"
+if errorlevel 1 (
+    color 0C
+    echo  [ERROR] No se pudo crear la base. Revise usuario, clave y que MariaDB este corriendo.
+    set "MYSQL_PWD="
+    pause
+    exit /b 1
+)
+echo    OK
+
 echo.
-echo  Base de datos: %DB_NAME%
-echo  Servidor: %DB_HOST%:%DB_PORT%
-echo  API Puerto: 9006
+echo [2/5] Aplicando estructura...
+for %%F in (01_Estructura.sql 02_Vistas.sql 03_StoredProcedures.sql 04_DatosIniciales.sql) do (
+    if exist "SQL\%%F" (
+        echo    - %%F
+        "%MYSQL%" -h %DB_HOST% -P %DB_PORT% -u %DB_ADMIN% --skip-ssl %DB_NAME% < "SQL\%%F"
+        if errorlevel 1 (
+            color 0C
+            echo  [ERROR] Fallo %%F. Instalacion incompleta.
+            set "MYSQL_PWD="
+            pause
+            exit /b 1
+        )
+    )
+)
+echo    OK
+
 echo.
-echo  Ejecute HotelVip_Server.exe para iniciar.
-echo  Acceda a: http://localhost:9006/app/login.html
-echo ============================================
+echo [3/5] Aplicando actualizaciones de base...
+if not exist "SQL\updates" mkdir "SQL\updates" >nul 2>nul
+if exist "SQL\updates\.last_update" del /q "SQL\updates\.last_update"
+for %%F in (SQL\updates\*.sql) do (
+    echo    - %%~nxF
+    "%MYSQL%" -h %DB_HOST% -P %DB_PORT% -u %DB_ADMIN% --skip-ssl %DB_NAME% < "%%F"
+    if errorlevel 1 (
+        color 0C
+        echo  [ERROR] Fallo la actualizacion %%~nxF.
+        set "MYSQL_PWD="
+        pause
+        exit /b 1
+    )
+    REM Solo se marca si se aplico BIEN
+    echo %%~nxF>> "SQL\updates\.last_update"
+)
+set "MYSQL_PWD="
+echo    OK
+
 echo.
+echo [4/5] Configurando HotelVip_Server.ini...
+if not exist "HotelVip_Server.ini" (
+    if exist "HotelVip_Server.ini.ejemplo" copy /y "HotelVip_Server.ini.ejemplo" "HotelVip_Server.ini" >nul
+)
+REM Clave de firma unica para esta instalacion (que no sea la de fabrica)
+for /f %%K in ('powershell -NoProfile -Command "-join ((48..57)+(65..90)+(97..122) ^| Get-Random -Count 40 ^| %%{[char]$_})"') do set "SECRET=%%K"
+
+powershell -NoProfile -Command ^
+  "$p='HotelVip_Server.ini'; $t=Get-Content $p -Raw;" ^
+  "$t=$t -replace '(?m)^Servidor=.*',   'Servidor=%DB_HOST%';" ^
+  "$t=$t -replace '(?m)^BaseDatos=.*',  'BaseDatos=%DB_NAME%';" ^
+  "$t=$t -replace '(?m)^Usuario=.*',    'Usuario=%DB_ADMIN%';" ^
+  "$t=$t -replace '(?m)^Clave=.*',      'Clave=%DB_ADMPASS%';" ^
+  "$t=$t -replace '(?m)^SecretKey=.*',  'SecretKey=%SECRET%';" ^
+  "$t=$t -replace '(?m)^Puerto=9006',   'Puerto=%API_PORT%';" ^
+  "Set-Content $p $t -Encoding UTF8"
+echo    OK
+
+echo.
+echo [5/5] Inicio automatico con Windows
+set /p AUTORUN="Que HotelVIP arranque solo al prender la PC? (S/N): "
+if /i "%AUTORUN%"=="S" (
+    powershell -NoProfile -Command ^
+      "$a=New-ScheduledTaskAction -Execute '%~dp0HotelVip_Server.exe' -WorkingDirectory '%~dp0';" ^
+      "$t=New-ScheduledTaskTrigger -AtLogOn;" ^
+      "$s=New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero);" ^
+      "Register-ScheduledTask -TaskName 'HotelVIP_%DB_NAME%' -Action $a -Trigger $t -Settings $s -Force | Out-Null" 2>nul
+    if errorlevel 1 (
+        echo    No se pudo crear la tarea. Ejecute este instalador como Administrador.
+    ) else (
+        echo    OK - arrancara solo al iniciar sesion
+    )
+) else (
+    echo    Omitido
+)
+
+color 0A
+echo.
+echo ============================================================
+echo   INSTALACION COMPLETADA
+echo ============================================================
+echo   Base de datos : %DB_NAME%
+echo   Servidor      : %DB_HOST%:%DB_PORT%
+echo   Puerto sistema: %API_PORT%
+echo.
+echo   Para entrar:  http://localhost:%API_PORT%/app/login.html
+echo   Usuario: admin   Clave: Admin123
+echo.
+echo   IMPORTANTE: cambie la clave de admin al primer ingreso,
+echo   desde Administracion ^> Usuarios.
+echo ============================================================
+echo.
+set /p INICIAR="Iniciar HotelVIP ahora? (S/N): "
+if /i "%INICIAR%"=="S" start "" "HotelVip_Server.exe"
 pause
