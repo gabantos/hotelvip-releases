@@ -143,7 +143,26 @@ powershell -NoProfile -Command ^
 echo    OK
 
 echo.
-echo [5/5] Inicio automatico con Windows
+echo [5/6] Conexion con las reservas web (opcional)
+echo    Si este hotel tiene pagina web con motor de reservas, ingrese su
+echo    token de enlace (lo entrega SistemasVIP). Enter para omitir.
+set "SYNC_TOKEN="
+set /p SYNC_TOKEN="Token de reservas web: "
+if not "%SYNC_TOKEN%"=="" (
+    set /p SYNC_NOM="Nombre de esta instancia (ej: AndinaPardo): "
+    powershell -NoProfile -Command ^
+      "$p='HotelVip_Server.ini'; $t=Get-Content $p -Raw;" ^
+      "$t=$t -replace '(?m)^Habilitado=0',   'Habilitado=1';" ^
+      "$t=$t -replace '(?m)^Token=\r?$',     'Token=%SYNC_TOKEN%';" ^
+      "$t=$t -replace '(?m)^InstanciaNom=.*','InstanciaNom=%SYNC_NOM%';" ^
+      "Set-Content $p $t -Encoding UTF8"
+    echo    OK - las reservas de la web bajaran a esta recepcion
+) else (
+    echo    Omitido - se puede activar despues en el archivo de configuracion
+)
+
+echo.
+echo [6/6] Inicio automatico con Windows
 set /p AUTORUN="Que HotelVIP arranque solo al prender la PC? (S/N): "
 if /i "%AUTORUN%"=="S" (
     powershell -NoProfile -Command ^

@@ -1,7 +1,12 @@
 // api.js - HotelVIP Frontend Core
 // SistemasVIP Cusco 2026
 
-const API_BASE = 'http://localhost:9006/api';
+// Mismo origen que sirvio la pagina: funciona en cualquier puerto (central
+// 9006, tenants 9007/9008) y desde cualquier PC de la red del hotel.
+// ANTES estaba fijo a localhost:9006: desde otra PC de la LAN las llamadas
+// iban a la maquina del que miraba (nada funcionaba), y un tenant en otro
+// puerto hablaba en silencio con el central. Cazado pre-despliegue 20-ago.
+const API_BASE = location.origin + '/api';
 
 const api = {
   _token: null,

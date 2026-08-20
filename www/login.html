@@ -271,7 +271,7 @@ document.getElementById('formLogin').addEventListener('submit', async function(e
   spinner.style.display = 'block';
 
   try {
-    const res = await fetch('http://localhost:9006/api/auth/login', {
+    const res = await fetch(location.origin + '/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usuario, contrasena: password, schema })
