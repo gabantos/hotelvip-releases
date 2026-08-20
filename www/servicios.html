@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP &mdash; Servicios</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* Pedido card estados */
+    .pedido-card {
+      background: var(--bg-card); border: 2px solid var(--border);
+      border-radius: var(--radius); padding: 14px;
+      cursor: pointer; transition: var(--transition);
+    }
+    .pedido-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .pedido-card.s-RECIBIDO       { border-color: var(--yellow); }
+    .pedido-card.s-CONFIRMADO     { border-color: var(--accent); }
+    .pedido-card.s-EN_PREPARACION { border-color: #8b5cf6; }
+    .pedido-card.s-EN_CAMINO      { border-color: var(--green); }
+    .pedido-card.s-ENTREGADO      { border-color: var(--border); }
+    .pedido-card.s-CANCELADO      { border-color: var(--red); opacity: .55; }
+
+    .b-RECIBIDO       { background: var(--yellow-light);          color: var(--yellow); }
+    .b-CONFIRMADO     { background: var(--accent-light);          color: var(--accent); }
+    .b-EN_PREPARACION { background: rgba(139,92,246,.15);         color: #8b5cf6; }
+    .b-EN_CAMINO      { background: var(--green-light);           color: var(--green); }
+    .b-ENTREGADO      { background: rgba(255,255,255,.06);        color: var(--text-muted); }
+    .b-CANCELADO      { background: var(--red-light);             color: var(--red); }
+
+    /* Tiempo urgente */
+    .tiempo-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,.06); color: var(--text-muted); }
+    .tiempo-badge.urgente { background: var(--red-light); color: var(--red); }
+
+    /* Servicio card catalogo */
+    .srv-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px;
+      cursor: pointer; transition: var(--transition); position: relative;
+    }
+    .srv-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .srv-card.selected { border-color: var(--green); background: rgba(16,185,129,.06); }
+    .srv-qty-badge {
+      position: absolute; top: 8px; right: 8px;
+      background: var(--green); color: #fff; font-size: 11px; font-weight: 700;
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .srv-cat-label { font-size: 10px; color: var(--text-faint); margin-bottom: 4px; }
+    .srv-nombre    { font-size: 13px; font-weight: 600; }
+    .srv-precio    { font-size: 16px; font-weight: 700; margin-top: 6px; }
+    .srv-tiempo    { font-size: 11px; color: var(--text-faint); margin-top: 3px; }
+
+    /* Carrito */
+    .cart-item { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+    .cart-item:last-child { border-bottom: none; }
+    .cart-nom  { flex: 1; font-size: 13px; }
+    .cart-qty  { display: flex; align-items: center; gap: 6px; }
+    .qty-btn   { width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: var(--text); font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .qty-btn:hover { background: rgba(255,255,255,.1); }
+    .cart-sub  { font-size: 13px; font-weight: 600; min-width: 70px; text-align: right; }
+    .cart-total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+    /* Filtro pill */
+    .filtro-cat {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      background: rgba(255,255,255,.04); border: 1px solid var(--border);
+      color: var(--text-muted); cursor: pointer; transition: var(--transition);
+    }
+    .filtro-cat.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+    /* Minibar item */
+    .mb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 5px; }
+    .mb-item.bajo { border-color: rgba(239,68,68,.3); }
+    .mb-nom   { font-size: 13px; font-weight: 600; }
+    .mb-stock { font-size: 12px; margin-top: 2px; }
+    .mb-precio { font-size: 13px; font-weight: 700; color: var(--yellow); }
+
+    /* Step progress */
+    .step-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+
+    /* Info row modal */
+    .info-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .info-row:last-child { border-bottom: none; }
+    .info-lbl { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+<div id="app-layout">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <!-- PAGE HEADER -->
+      <div class="page-header">
+        <h1><i class="fa-solid fa-concierge-bell"></i>Servicios</h1>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost" onclick="init()"><i class="fa-solid fa-rotate"></i>Actualizar</button>
+          <button class="btn btn-ghost" onclick="abrirMinibar()"><i class="fa-solid fa-martini-glass"></i>Minibar</button>
+          <button class="btn btn-primary" onclick="abrirNuevoPedido()"><i class="fa-solid fa-plus"></i>Nuevo Servicio</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--accent-light);color:var(--accent);float:right"><i class="fa-solid fa-concierge-bell"></i></div>
+          <div class="kpi-label">Activos hoy</div>
+          <div class="kpi-value accent" id="kpiTotal">-</div>
+          <div class="kpi-sub">Pedidos del dia</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--yellow-light);color:var(--yellow);float:right"><i class="fa-solid fa-clock"></i></div>
+          <div class="kpi-label">Pendientes</div>
+          <div class="kpi-value yellow" id="kpiPend">-</div>
+          <div class="kpi-sub">Sin entregar</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--green-light);color:var(--green);float:right"><i class="fa-solid fa-check"></i></div>
+          <div class="kpi-label">Completados</div>
+          <div class="kpi-value green" id="kpiEntregados">-</div>
+          <div class="kpi-sub">Entregados hoy</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--yellow-light);color:var(--yellow);float:right"><i class="fa-solid fa-sack-dollar"></i></div>
+          <div class="kpi-label">Ingresos servicios</div>
+          <div class="kpi-value" id="kpiVendido">-</div>
+          <div class="kpi-sub">S/ vendido hoy</div>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs" id="mainTabs">
+        <button class="tab-btn active" onclick="cambiarTab('pedidos',this)"><i class="fa-solid fa-receipt"></i> Pedidos</button>
+        <button class="tab-btn" onclick="cambiarTab('catalogo',this)"><i class="fa-solid fa-book-open"></i> Catalogo</button>
+      </div>
+
+      <!-- TAB PEDIDOS -->
+      <div id="tabPedidos" class="tab-panel active">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px" id="pedidosGrid">
+          <div style="text-align:center;padding:50px;color:var(--text-faint);grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- TAB CATALOGO -->
+      <div id="tabCatalogo" class="tab-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="catFiltros">
+            <button class="filtro-cat active" data-cat="" onclick="filtrarCatPage(this,'')">Todos</button>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="abrirNuevoServicio()"><i class="fa-solid fa-plus"></i>Nuevo Servicio</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px" id="catGrid">
+          <div style="text-align:center;padding:50px;color:var(--text-faint);grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL DETALLE PEDIDO -->
+<div class="modal-overlay" id="modalDetalle">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <h3 id="dtTitulo">Pedido</h3>
+        <div id="dtBadge" style="margin-top:4px"></div>
+      </div>
+      <button class="btn-close" onclick="cerrarModal('modalDetalle')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" id="dtBody">
+      <div style="text-align:center;padding:30px"><div class="spinner"></div></div>
+    </div>
+    <div class="modal-footer" id="dtAcciones"></div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO PEDIDO -->
+<div class="modal-overlay" id="modalNuevo">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-plus" style="color:var(--accent)"></i> Nuevo Pedido de Servicios</h3>
+      <button class="btn-close" onclick="cerrarModal('modalNuevo')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label>Reserva (habitacion o codigo)</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" class="form-control" id="npBuscarRes" placeholder="101 o RES-001-000001" style="flex:1">
+            <button class="btn btn-primary btn-sm" onclick="buscarReservaParaPedido()">OK</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Canal</label>
+          <select class="form-control" id="npCanal">
+            <option value="RECEPCION">Recepcion</option>
+            <option value="TELEFONO">Telefono</option>
+            <option value="QR">QR Habitacion</option>
+          </select>
+        </div>
+      </div>
+      <div id="npReservaInfo" style="display:none;background:var(--bg-body);border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px"></div>
+
+      <div style="margin-bottom:8px">
+        <label style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Seleccionar Servicios</label>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="catFiltrosPedido">
+        <button class="filtro-cat active" data-cat="" onclick="filtrarCatPedido(this,'')">Todos</button>
+      </div>
+      <div style="max-height:220px;overflow-y:auto;padding-right:4px" id="npCatGrid"></div>
+
+      <div id="npCarrito" style="display:none;margin-top:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tu Pedido</div>
+        <div class="card card-sm" style="margin-bottom:10px">
+          <div id="carritoItems"></div>
+          <div class="cart-total">
+            <span>Total estimado</span>
+            <span id="carritoTotal">S/ 0.00</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Observaciones</label>
+          <input type="text" class="form-control" id="npObs" placeholder="Notas especiales (alergia, horario, etc.)">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalNuevo')">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarPedido()"><i class="fa-solid fa-check"></i>Confirmar Pedido</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO SERVICIO CATALOGO -->
+<div class="modal-overlay" id="modalNuevoSrv">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="nSrvTitulo"><i class="fa-solid fa-plus" style="color:var(--accent)"></i> Nuevo Servicio</h3>
+      <button class="btn-close" onclick="cerrarModal('modalNuevoSrv')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="nSrvId" value="0">
+      <div class="form-group">
+        <label>Nombre del Servicio</label>
+        <input type="text" class="form-control" id="nSrvNombre" placeholder="Room Service, Spa, Lavanderia...">
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label>Categoria</label>
+          <select class="form-control" id="nSrvCat">
+            <option value="ALIMENTACION">Alimentacion</option>
+            <option value="SPA">Spa &amp; Bienestar</option>
+            <option value="LAVANDERIA">Lavanderia</option>
+            <option value="TOUR">Tour &amp; Excursion</option>
+            <option value="MINIBAR">Minibar</option>
+            <option value="PARKING">Estacionamiento</option>
+            <option value="OTROS">Otros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Precio (S/.)</label>
+          <input type="number" class="form-control" id="nSrvPrecio" placeholder="0.00" step="0.01" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descripcion</label>
+        <textarea class="form-control" id="nSrvDesc" rows="2" placeholder="Descripcion breve del servicio..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Tiempo estimado (minutos, 0 = inmediato)</label>
+        <input type="number" class="form-control" id="nSrvTiempo" placeholder="30" min="0">
+      </div>
+      <div class="form-group">
+        <label class="toggle-wrap">
+          <span class="toggle">
+            <input type="checkbox" id="nSrvActivo" checked>
+            <span class="toggle-slider"></span>
+          </span>
+          Servicio activo
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalNuevoSrv')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarServicio()"><i class="fa-solid fa-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MINIBAR -->
+<div class="modal-overlay" id="modalMinibar">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-martini-glass" style="color:var(--yellow)"></i> Consumo Minibar</h3>
+      <button class="btn-close" onclick="cerrarModal('modalMinibar')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input type="text" class="form-control" id="mbBuscarHab" placeholder="Numero de habitacion" style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="buscarMinibar()">Buscar</button>
+      </div>
+      <div id="mbInfo" style="display:none;font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
+      <div id="mbItems"></div>
+      <div id="mbCarrito" style="display:none;margin-top:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Consumos a Registrar</div>
+        <div id="mbCarritoItems"></div>
+        <div class="cart-total">
+          <span>Total</span><span id="mbTotal">S/ 0.00</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalMinibar')">Cancelar</button>
+      <button class="btn btn-success" id="btnConfMinibar" onclick="confirmarMinibar()" style="display:none">
+        <i class="fa-solid fa-check"></i>Registrar Consumo
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script>
+initLayout('servicios');
+
+let catalogo = [];
+let pedidos  = [];
+let carrito  = {};
+let reservaPedido = null;
+let mbReserva = null;
+let mbHabitacion = null;
+let mbCarritoData = {};
+
+const CAT_ICON = {
+  ALIMENTACION:'<i class="fa-solid fa-utensils"></i>',
+  SPA:'<i class="fa-solid fa-spa"></i>',
+  LAVANDERIA:'<i class="fa-solid fa-shirt"></i>',
+  TOUR:'<i class="fa-solid fa-mountain-sun"></i>',
+  MINIBAR:'<i class="fa-solid fa-martini-glass"></i>',
+  PARKING:'<i class="fa-solid fa-car"></i>',
+  OTROS:'<i class="fa-solid fa-star"></i>'
+};
+const CAT_LABEL = {
+  ALIMENTACION:'Alimentacion', SPA:'Spa', LAVANDERIA:'Lavanderia',
+  TOUR:'Tour', MINIBAR:'Minibar', PARKING:'Parking', OTROS:'Otros'
+};
+const ESTADO_PASOS = ['RECIBIDO','CONFIRMADO','EN_PREPARACION','EN_CAMINO','ENTREGADO'];
+
+function fMoneda(v) { return 'S/ ' + Number(v||0).toFixed(2); }
+function fFechaHora(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  return d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'}) + ' ' +
+         d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ── INIT ──────────────────────────────────────────────────
+async function init() {
+  await Promise.all([cargarResumen(), cargarPedidos(), cargarCatalogo()]);
+}
+
+async function cargarResumen() {
+  try {
+    const res = await api.get('/servicios/resumen-hoy');
+    const d = res.data;
+    document.getElementById('kpiTotal').textContent      = d.total;
+    document.getElementById('kpiPend').textContent       = (d.recibidos||0) + (d.enPreparacion||0) + (d.enCamino||0);
+    document.getElementById('kpiEntregados').textContent = d.entregados;
+    document.getElementById('kpiVendido').textContent    = 'S/ ' + Number(d.totalVendido||0).toFixed(0);
+  } catch(e) {}
+}
+
+// ── PEDIDOS ────────────────────────────────────────────────
+async function cargarPedidos() {
+  try {
+    const res = await api.get('/servicios/pedidos');
+    pedidos = res.data || [];
+    renderPedidos(pedidos);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function renderPedidos(lista) {
+  const grid = document.getElementById('pedidosGrid');
+  if (!lista.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-faint)">Sin pedidos activos</div>';
+    return;
+  }
+  grid.innerHTML = lista.map(p => {
+    const mins = p.minutosEspera || 0;
+    const urgente = mins > 30 && !['ENTREGADO','CANCELADO'].includes(p.estado);
+    return `
+    <div class="pedido-card s-${p.estado}" onclick="verPedido(${p.id})">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          <div style="font-size:22px;font-weight:700">Hab ${p.habitacion}</div>
+          <div style="font-size:11px;color:var(--text-faint);font-family:monospace">${p.reserva}</div>
+        </div>
+        <span class="badge b-${p.estado}">${p.estado.replace(/_/g,' ')}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">${p.huesped}</div>
+      <div style="font-size:12px;color:var(--text-faint);border-top:1px solid var(--border);padding-top:6px;margin-bottom:8px">${p.servicios || '&mdash;'}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:15px;font-weight:700">${fMoneda(p.total)}</div>
+        <div class="tiempo-badge ${urgente?'urgente':''}">
+          ${urgente?'<i class="fa-solid fa-triangle-exclamation"></i> ':''} ${mins} min
+        </div>
+      </div>
+      ${p.observaciones ? `<div style="font-size:11px;color:var(--text-faint);margin-top:6px;border-top:1px solid var(--border);padding-top:4px">${p.observaciones}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function verPedido(id) {
+  document.getElementById('dtBody').innerHTML = '<div style="text-align:center;padding:30px"><div class="spinner"></div></div>';
+  document.getElementById('dtAcciones').innerHTML = '';
+  document.getElementById('modalDetalle').classList.add('open');
+  try {
+    const res = await api.get('/servicios/pedidos/' + id);
+    const p = res.data;
+    document.getElementById('dtTitulo').textContent = 'Pedido #' + id + ' — Hab ' + p.habitacion;
+    document.getElementById('dtBadge').innerHTML =
+      `<span class="badge b-${p.estado}">${p.estado.replace(/_/g,' ')}</span>
+       <span class="text-sm text-muted" style="margin-left:8px">${p.canal}</span>`;
+
+    const pasoActual = ESTADO_PASOS.indexOf(p.estado);
+    const progHtml = ESTADO_PASOS.map((e, i) => `
+      <div style="flex:1;text-align:center">
+        <div class="step-circle" style="margin:0 auto 4px;background:${i<=pasoActual?'var(--green)':'rgba(255,255,255,.06)'};color:${i<=pasoActual?'#fff':'var(--text-faint)'}">
+          ${i <= pasoActual ? '<i class="fa-solid fa-check" style="font-size:10px"></i>' : (i+1)}
+        </div>
+        <div style="font-size:10px;color:${i<=pasoActual?'var(--green)':'var(--text-faint)'}">${e.replace(/_/g,' ')}</div>
+      </div>`).join('');
+
+    document.getElementById('dtBody').innerHTML = `
+      <div style="display:flex;margin-bottom:18px;gap:4px">${progHtml}</div>
+
+      <div class="form-row cols-2" style="margin-bottom:14px">
+        <div>
+          <div class="text-sm text-muted">HUESPED</div>
+          <div style="font-weight:600">${p.huesped}</div>
+          ${p.whatsapp ? `<div style="font-size:12px;color:#25D366"><i class="fa-brands fa-whatsapp"></i> ${p.whatsapp}</div>` : ''}
+        </div>
+        <div>
+          <div class="text-sm text-muted">RESERVA</div>
+          <div style="font-weight:600;font-family:monospace">${p.reserva}</div>
+        </div>
+        <div>
+          <div class="text-sm text-muted">PEDIDO</div>
+          <div>${fFechaHora(p.fecha)}</div>
+        </div>
+        <div>
+          <div class="text-sm text-muted">ESTIMADO</div>
+          <div>${p.fechaEstimada ? fFechaHora(p.fechaEstimada) : '&mdash;'}</div>
+        </div>
+      </div>
+
+      <div class="text-sm" style="font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:8px">Items del pedido</div>
+      <div class="card card-sm" style="margin-bottom:12px">
+        ${(p.items||[]).map(i => `
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:13px;font-weight:600">${i.nombre}</div>
+              ${i.notas ? `<div class="text-sm text-muted">${i.notas}</div>` : ''}
+            </div>
+            <div style="text-align:right">
+              <div class="text-sm">x${i.cantidad}</div>
+              <div style="font-size:13px;font-weight:600">${fMoneda(i.subtotal)}</div>
+            </div>
+          </div>`).join('')}
+        <div class="cart-total" style="margin-top:8px">
+          <span>Total</span><span>${fMoneda(p.total)}</span>
+        </div>
+      </div>
+      ${p.observaciones ? `<div style="background:var(--accent-light);border-radius:7px;padding:9px;font-size:13px;color:var(--text-muted)">Obs: ${p.observaciones}</div>` : ''}`;
+
+    const acc = document.getElementById('dtAcciones');
+    const PASOS_SIG = { RECIBIDO:'CONFIRMADO', CONFIRMADO:'EN_PREPARACION', EN_PREPARACION:'EN_CAMINO', EN_CAMINO:'ENTREGADO' };
+    const PASOS_LBL = { CONFIRMADO:'Confirmar', EN_PREPARACION:'Preparando', EN_CAMINO:'En camino', ENTREGADO:'Marcar Entregado' };
+    const btns = [];
+    if (PASOS_SIG[p.estado]) {
+      const sig = PASOS_SIG[p.estado];
+      btns.push(`<button class="btn btn-success" onclick="avanzarEstado(${id},'${sig}')">
+        <i class="fa-solid fa-arrow-right"></i>${PASOS_LBL[sig]}</button>`);
+    }
+    if (!['ENTREGADO','CANCELADO'].includes(p.estado))
+      btns.push(`<button class="btn btn-danger" onclick="avanzarEstado(${id},'CANCELADO')"><i class="fa-solid fa-xmark"></i>Cancelar</button>`);
+    if (!p.cobrado && p.estado === 'ENTREGADO')
+      btns.push(`<button class="btn btn-primary" onclick="cargarCuenta(${id})"><i class="fa-solid fa-file-invoice"></i>Cargar a Cuenta</button>`);
+    acc.innerHTML = btns.join('');
+  } catch(e) {
+    document.getElementById('dtBody').innerHTML = `<div style="text-align:center;padding:30px;color:var(--red)">${e.message}</div>`;
+  }
+}
+
+async function avanzarEstado(id, estado) {
+  try {
+    await api.put('/servicios/pedidos/' + id + '/estado', { estado });
+    toast('Estado: ' + estado.replace(/_/g,' '), 'success');
+    cerrarModal('modalDetalle');
+    await init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function cargarCuenta(id) {
+  try {
+    await api.post('/servicios/pedidos/' + id + '/cargar-cuenta', {});
+    toast('Cargado a la cuenta de la reserva', 'success');
+    cerrarModal('modalDetalle');
+    init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── CATALOGO ───────────────────────────────────────────────
+async function cargarCatalogo() {
+  try {
+    const res = await api.get('/servicios/catalogo');
+    catalogo = res.data || [];
+    renderCatalogo(catalogo);
+    const cats = [...new Set(catalogo.map(s => s.categoria))];
+    ['catFiltros','catFiltrosPedido'].forEach(fId => {
+      const cont = document.getElementById(fId);
+      if (!cont) return;
+      cont.innerHTML = `<button class="filtro-cat active" data-cat="" onclick="filtrarCat${fId==='catFiltros'?'Page':'Pedido'}(this,'')">Todos</button>` +
+        cats.map(c => `<button class="filtro-cat" data-cat="${c}" onclick="filtrarCat${fId==='catFiltros'?'Page':'Pedido'}(this,'${c}')">
+          ${CAT_ICON[c]||''} ${CAT_LABEL[c]||c}</button>`).join('');
+    });
+  } catch(e) {}
+}
+
+function renderCatalogo(lista) {
+  document.getElementById('catGrid').innerHTML = lista.length ? lista.map(s => {
+    const qty = carrito[s.id]?.cantidad || 0;
+    return `
+    <div class="srv-card ${qty > 0 ? 'selected' : ''}" onclick="toggleServicio(${s.id})">
+      ${qty > 0 ? `<div class="srv-qty-badge">${qty}</div>` : ''}
+      <div class="srv-cat-label">${CAT_ICON[s.categoria]||''} ${CAT_LABEL[s.categoria]||s.categoria}</div>
+      <div class="srv-nombre">${s.nombre}</div>
+      ${s.descripcion ? `<div class="text-sm text-muted" style="margin-top:3px">${s.descripcion}</div>` : ''}
+      <div class="srv-precio">${fMoneda(s.precioPEN)}</div>
+      <div class="srv-tiempo"><i class="fa-regular fa-clock"></i> ${s.tiempoEstimado > 0 ? s.tiempoEstimado + ' min' : 'Inmediato'}</div>
+      <div style="margin-top:10px;display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="event.stopPropagation();editarServicio(${s.id})"><i class="fa-solid fa-pen"></i>Editar</button>
+      </div>
+    </div>`;
+  }).join('') : '<div style="text-align:center;padding:40px;color:var(--text-faint);grid-column:1/-1">Sin servicios en el catalogo</div>';
+  renderNpCatalogo(lista);
+}
+
+function renderNpCatalogo(lista) {
+  const cont = document.getElementById('npCatGrid');
+  if (!cont) return;
+  cont.innerHTML = lista.map(s => {
+    const qty = carrito[s.id]?.cantidad || 0;
+    return `
+    <div class="srv-card ${qty > 0 ? 'selected' : ''}" onclick="toggleServicio(${s.id})" style="margin-bottom:6px">
+      ${qty > 0 ? `<div class="srv-qty-badge">${qty}</div>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="srv-nombre">${s.nombre}</div>
+          <div class="srv-cat-label">${CAT_ICON[s.categoria]||''} ${CAT_LABEL[s.categoria]||s.categoria} &middot; ${s.tiempoEstimado > 0 ? s.tiempoEstimado + 'min' : 'Imm.'}</div>
+        </div>
+        <div style="font-size:14px;font-weight:700">${fMoneda(s.precioPEN)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtrarCatPage(btn, cat) {
+  document.querySelectorAll('#catFiltros .filtro-cat').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCatalogo(cat ? catalogo.filter(s => s.categoria === cat) : catalogo);
+}
+
+function filtrarCatPedido(btn, cat) {
+  document.querySelectorAll('#catFiltrosPedido .filtro-cat').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderNpCatalogo(cat ? catalogo.filter(s => s.categoria === cat) : catalogo);
+}
+
+function toggleServicio(id) {
+  const srv = catalogo.find(s => s.id === id);
+  if (!srv) return;
+  if (carrito[id]) { carrito[id].cantidad++; }
+  else { carrito[id] = { ...srv, cantidad: 1 }; }
+  renderCarrito();
+  renderNpCatalogo(catalogo);
+}
+
+function cambiarCantidadCarrito(id, delta) {
+  if (!carrito[id]) return;
+  carrito[id].cantidad += delta;
+  if (carrito[id].cantidad <= 0) delete carrito[id];
+  renderCarrito();
+  renderNpCatalogo(catalogo);
+}
+
+function renderCarrito() {
+  const items = Object.values(carrito);
+  const panel = document.getElementById('npCarrito');
+  if (!items.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  let sum = 0;
+  document.getElementById('carritoItems').innerHTML = items.map(i => {
+    sum += i.precioPEN * i.cantidad;
+    return `<div class="cart-item">
+      <span class="cart-nom">${i.nombre}</span>
+      <div class="cart-qty">
+        <button class="qty-btn" onclick="cambiarCantidadCarrito(${i.id},-1)">-</button>
+        <span>${i.cantidad}</span>
+        <button class="qty-btn" onclick="cambiarCantidadCarrito(${i.id},1)">+</button>
+      </div>
+      <span class="cart-sub">${fMoneda(i.precioPEN * i.cantidad)}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('carritoTotal').textContent = fMoneda(sum);
+}
+
+// ── NUEVO PEDIDO ──────────────────────────────────────────
+function abrirNuevoPedido() {
+  carrito = {};
+  reservaPedido = null;
+  document.getElementById('npReservaInfo').style.display = 'none';
+  document.getElementById('npCarrito').style.display = 'none';
+  document.getElementById('npBuscarRes').value = '';
+  renderNpCatalogo(catalogo);
+  document.getElementById('modalNuevo').classList.add('open');
+}
+
+async function buscarReservaParaPedido() {
+  const q = document.getElementById('npBuscarRes').value.trim();
+  if (!q) return;
+  try {
+    const res = await api.get('/reservas?q=' + q + '&estado=CHECKIN&limit=3');
+    if (!res.data.length) { toast('No hay reservas activas para esa habitacion', 'warning'); return; }
+    const r = res.data[0];
+    reservaPedido = r;
+    const info = document.getElementById('npReservaInfo');
+    info.style.display = 'block';
+    info.innerHTML = `<strong>Hab ${r.habitacion}</strong> &middot; ${r.huesped} &middot;
+      <span style="font-family:monospace">${r.codigo}</span> &middot;
+      <span style="color:${r.saldo > 0 ? 'var(--red)' : 'var(--green)'}">Saldo ${fMoneda(r.saldo)}</span>`;
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function confirmarPedido() {
+  if (!reservaPedido) { toast('Busque y seleccione una reserva', 'warning'); return; }
+  const items = Object.values(carrito);
+  if (!items.length) { toast('Agregue al menos un servicio', 'warning'); return; }
+  try {
+    const res = await api.post('/servicios/pedidos', {
+      idReserva:     reservaPedido.id,
+      idHabitacion:  parseInt(reservaPedido.habitacion) || 0,
+      canal:         document.getElementById('npCanal').value,
+      observaciones: document.getElementById('npObs').value,
+      items: items.map(i => ({ idServicio: i.id, cantidad: i.cantidad }))
+    });
+    toast('Pedido creado #' + res.data.idPedido + ' · Entrega en ~' + res.data.tiempoEst + ' min', 'success');
+    cerrarModal('modalNuevo');
+    carrito = {};
+    await init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── NUEVO SERVICIO CATALOGO ────────────────────────────────
+function abrirNuevoServicio() {
+  document.getElementById('nSrvTitulo').innerHTML = '<i class="fa-solid fa-plus" style="color:var(--accent)"></i> Nuevo Servicio';
+  document.getElementById('nSrvId').value = '0';
+  document.getElementById('nSrvNombre').value = '';
+  document.getElementById('nSrvCat').value = 'ALIMENTACION';
+  document.getElementById('nSrvPrecio').value = '';
+  document.getElementById('nSrvDesc').value = '';
+  document.getElementById('nSrvTiempo').value = '30';
+  document.getElementById('nSrvActivo').checked = true;
+  document.getElementById('modalNuevoSrv').classList.add('open');
+}
+
+function editarServicio(id) {
+  const s = catalogo.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('nSrvTitulo').innerHTML = '<i class="fa-solid fa-pen" style="color:var(--accent)"></i> Editar Servicio';
+  document.getElementById('nSrvId').value = s.id;
+  document.getElementById('nSrvNombre').value = s.nombre;
+  document.getElementById('nSrvCat').value = s.categoria;
+  document.getElementById('nSrvPrecio').value = s.precioPEN;
+  document.getElementById('nSrvDesc').value = s.descripcion || '';
+  document.getElementById('nSrvTiempo').value = s.tiempoEstimado || 0;
+  document.getElementById('nSrvActivo').checked = !!s.activo;
+  document.getElementById('modalNuevoSrv').classList.add('open');
+}
+
+async function guardarServicio() {
+  const id = parseInt(document.getElementById('nSrvId').value);
+  const nombre = document.getElementById('nSrvNombre').value.trim();
+  const precio = parseFloat(document.getElementById('nSrvPrecio').value);
+  if (!nombre) { toast('Ingrese el nombre del servicio', 'warning'); return; }
+  if (!precio || precio <= 0) { toast('Ingrese un precio valido', 'warning'); return; }
+  const payload = {
+    nombre,
+    categoria:      document.getElementById('nSrvCat').value,
+    precioPEN:      precio,
+    descripcion:    document.getElementById('nSrvDesc').value,
+    tiempoEstimado: parseInt(document.getElementById('nSrvTiempo').value) || 0,
+    activo:         document.getElementById('nSrvActivo').checked ? 1 : 0
+  };
+  try {
+    if (id > 0) {
+      await api.put('/servicios/catalogo/' + id, payload);
+      toast('Servicio actualizado', 'success');
+    } else {
+      await api.post('/servicios/catalogo', payload);
+      toast('Servicio creado', 'success');
+    }
+    cerrarModal('modalNuevoSrv');
+    await cargarCatalogo();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── MINIBAR ────────────────────────────────────────────────
+function abrirMinibar() {
+  mbCarritoData = {};
+  mbReserva = null;
+  document.getElementById('mbBuscarHab').value = '';
+  document.getElementById('mbItems').innerHTML = '';
+  document.getElementById('mbCarrito').style.display = 'none';
+  document.getElementById('btnConfMinibar').style.display = 'none';
+  document.getElementById('mbInfo').style.display = 'none';
+  document.getElementById('modalMinibar').classList.add('open');
+}
+
+async function buscarMinibar() {
+  const q = document.getElementById('mbBuscarHab').value.trim();
+  if (!q) return;
+  try {
+    const res = await api.get('/reservas?q=' + q + '&estado=CHECKIN&limit=1');
+    if (!res.data.length) { toast('Sin reserva activa en esa habitacion', 'warning'); return; }
+    mbReserva = res.data[0];
+    const resHabs = await api.get('/habitaciones');
+    const hab = resHabs.data?.find(h => h.numero == mbReserva.habitacion);
+    if (!hab) { toast('Habitacion no encontrada', 'warning'); return; }
+    mbHabitacion = hab.idHabitacion;
+    const info = document.getElementById('mbInfo');
+    info.style.display = 'block';
+    info.innerHTML = `<i class="fa-solid fa-bed"></i> Hab ${mbReserva.habitacion} &middot; ${mbReserva.huesped} &middot; ${mbReserva.codigo}`;
+    const resMb = await api.get('/servicios/minibar/' + mbHabitacion);
+    renderMinibarItems(resMb.data);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function renderMinibarItems(items) {
+  document.getElementById('mbItems').innerHTML = items.map(i => `
+    <div class="mb-item ${i.bajo ? 'bajo' : ''}">
+      <div>
+        <div class="mb-nom">${i.nombre}</div>
+        <div class="mb-stock" style="color:${i.bajo ? 'var(--red)' : 'var(--text-faint)'}">
+          Stock: ${i.cantidad} ${i.bajo ? '<i class="fa-solid fa-triangle-exclamation"></i> BAJO' : ''}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="mb-precio">${fMoneda(i.precio)}</span>
+        <button class="qty-btn" onclick="addMinibar(${i.id},'${i.nombre}',${i.precio},${i.cantidad})">+</button>
+      </div>
+    </div>`).join('');
+}
+
+function addMinibar(id, nombre, precio, stockMax) {
+  if (!mbCarritoData[id]) mbCarritoData[id] = { id, nombre, precio, cantidad: 0, stockMax };
+  if (mbCarritoData[id].cantidad >= stockMax) { toast('Sin stock suficiente', 'warning'); return; }
+  mbCarritoData[id].cantidad++;
+  renderMbCarrito();
+}
+
+function renderMbCarrito() {
+  const items = Object.values(mbCarritoData).filter(i => i.cantidad > 0);
+  const panel = document.getElementById('mbCarrito');
+  const btn   = document.getElementById('btnConfMinibar');
+  if (!items.length) { panel.style.display = 'none'; btn.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  btn.style.display   = '';
+  let sum = 0;
+  document.getElementById('mbCarritoItems').innerHTML = items.map(i => {
+    sum += i.precio * i.cantidad;
+    return `<div class="cart-item">
+      <span class="cart-nom">${i.nombre}</span>
+      <div class="cart-qty">
+        <button class="qty-btn" onclick="qtyMb(${i.id},-1)">-</button>
+        <span>${i.cantidad}</span>
+        <button class="qty-btn" onclick="qtyMb(${i.id},1)">+</button>
+      </div>
+      <span class="cart-sub">${fMoneda(i.precio * i.cantidad)}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('mbTotal').textContent = fMoneda(sum);
+}
+
+function qtyMb(id, delta) {
+  if (!mbCarritoData[id]) return;
+  mbCarritoData[id].cantidad = Math.max(0, Math.min(mbCarritoData[id].stockMax, mbCarritoData[id].cantidad + delta));
+  if (!mbCarritoData[id].cantidad) delete mbCarritoData[id];
+  renderMbCarrito();
+}
+
+async function confirmarMinibar() {
+  const items = Object.values(mbCarritoData).filter(i => i.cantidad > 0);
+  if (!items.length || !mbReserva || !mbHabitacion) return;
+  try {
+    for (const i of items) {
+      await api.post('/servicios/minibar/consumo', {
+        idReserva: mbReserva.id, idHabitacion: mbHabitacion,
+        idServicio: i.id, cantidad: i.cantidad
+      });
+    }
+    toast(`${items.length} consumo(s) de minibar registrados`, 'success');
+    cerrarModal('modalMinibar');
+    init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── UTIL ───────────────────────────────────────────────────
+function cambiarTab(tab, btn) {
+  document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+}
+
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// INIT + auto-refresh 45s
+init();
+setInterval(cargarPedidos, 45000);
+</script>
+</body>
+</html>

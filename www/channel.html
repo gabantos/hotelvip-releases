@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP &mdash; Canales</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* Canal card */
+    .canal-card {
+      background: var(--bg-card); border: 2px solid var(--border);
+      border-radius: var(--radius); padding: 18px;
+      flex: 1; min-width: 200px; transition: var(--transition);
+    }
+    .canal-card:hover { border-color: rgba(255,255,255,.15); }
+    .canal-card.active { border-color: var(--accent); }
+    .canal-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .canal-icon { font-size: 26px; width: 40px; text-align: center; }
+    .canal-nombre { font-size: 15px; font-weight: 700; }
+    .canal-estado { font-size: 11px; margin-top: 2px; }
+    .canal-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .cs { background: var(--bg-body); border-radius: 7px; padding: 8px; text-align: center; }
+    .cs .v { font-size: 16px; font-weight: 700; }
+    .cs .l { font-size: 10px; color: var(--text-faint); margin-top: 1px; }
+
+    /* Badge de canal */
+    .chan-BOOKING  { background: rgba(0,100,255,.15); color: #4d88ff; }
+    .chan-AIRBNB   { background: rgba(255,90,90,.15);  color: #ff5a5a; }
+    .chan-DIRECTO  { background: var(--green-light);   color: var(--green); }
+    .chan-EXPEDIA  { background: var(--yellow-light);  color: var(--yellow); }
+    .chan-default  { background: rgba(255,255,255,.07); color: var(--text-muted); }
+
+    /* Reserva badge estado */
+    .b-NUEVA      { background: var(--red-light);            color: var(--red); }
+    .b-PROCESADA  { background: var(--green-light);          color: var(--green); }
+    .b-CANCELADA  { background: rgba(255,255,255,.06);       color: var(--text-faint); }
+
+    /* Badge nuevas reservas */
+    .badge-nuevas { background: var(--red); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 5px; }
+
+    /* Ingresos bar */
+    .canal-bar-wrap { margin-top: 12px; }
+    .canal-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+    .canal-bar-label { min-width: 80px; color: var(--text-muted); }
+    .canal-bar-track { flex: 1; height: 6px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+    .canal-bar-fill { height: 6px; border-radius: 3px; transition: width .4s; }
+    .canal-bar-val { min-width: 60px; text-align: right; color: var(--text-muted); font-size: 11px; }
+
+    /* Tabla acciones */
+    .btn-proc { background: var(--green-light); color: var(--green); border: 1px solid rgba(16,185,129,.2); padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-proc:hover { background: rgba(16,185,129,.25); }
+    .btn-canc { background: var(--red-light); color: var(--red); border: 1px solid rgba(239,68,68,.2); padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-left: 4px; }
+    .btn-canc:hover { background: rgba(239,68,68,.25); }
+    .btn-ver  { background: rgba(255,255,255,.05); color: var(--text-muted); border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+    .btn-ver:hover { background: rgba(255,255,255,.09); color: var(--text); }
+
+    /* Tarifas tabla */
+    .tarifa-input { background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px; padding: 4px 8px; width: 80px; outline: none; text-align: right; }
+    .tarifa-input:focus { border-color: var(--border-focus); }
+  </style>
+</head>
+<body>
+<div id="app-layout">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <!-- PAGE HEADER -->
+      <div class="page-header">
+        <h1><i class="fa-solid fa-satellite-dish"></i>Canales de Distribucion</h1>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost" onclick="init()"><i class="fa-solid fa-rotate"></i>Actualizar</button>
+          <button class="btn btn-primary" id="btnSync" onclick="sincronizarCanales()">
+            <i class="fa-solid fa-satellite-dish"></i>Sincronizar
+          </button>
+        </div>
+      </div>
+
+      <!-- CANAL CARDS -->
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:24px" id="canalesRow">
+        <div style="color:var(--text-faint);padding:20px"><div class="spinner"></div></div>
+      </div>
+
+      <!-- KPIs ingresos por canal (barras) -->
+      <div class="card" style="margin-bottom:24px" id="kpiIngresosCard" style="display:none">
+        <div class="card-title"><i class="fa-solid fa-chart-bar"></i>Ingresos por Canal (este mes)</div>
+        <div id="canalesBarras"></div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs" id="mainTabs">
+        <button class="tab-btn active" onclick="cambiarTab('reservas',this)"><i class="fa-solid fa-calendar-check"></i> Reservas por Canal</button>
+        <button class="tab-btn" onclick="cambiarTab('tarifas',this)"><i class="fa-solid fa-tag"></i> Tarifas</button>
+        <button class="tab-btn" onclick="cambiarTab('disponibilidad',this)"><i class="fa-solid fa-table-cells"></i> Disponibilidad</button>
+      </div>
+
+      <!-- TAB RESERVAS -->
+      <div id="tabReservas" class="tab-panel active">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+          <select class="form-control" id="fEstado" onchange="cargarReservas()" style="width:160px">
+            <option value="">Todos</option>
+            <option value="NUEVA" selected>Nuevas</option>
+            <option value="PROCESADA">Procesadas</option>
+            <option value="CANCELADA">Canceladas</option>
+          </select>
+          <select class="form-control" id="fCanal" onchange="cargarReservas()" style="width:160px">
+            <option value="">Todos los canales</option>
+          </select>
+          <button class="btn btn-success btn-sm" onclick="procesarTodas()">
+            <i class="fa-solid fa-play"></i>Procesar Todas
+          </button>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr>
+              <th>Canal</th><th>Codigo</th><th>Huesped</th>
+              <th>Check-in</th><th>Check-out</th><th>Tipo Hab.</th>
+              <th>Total</th><th>Comision</th><th>Estado</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="tablaReservas">
+              <tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-faint)">
+                <div class="spinner"></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB TARIFAS -->
+      <div id="tabTarifas" class="tab-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;gap:10px;align-items:center">
+            <select class="form-control" id="tfCanal" style="width:180px" onchange="cargarTarifas()">
+              <option value="">Todos los canales</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="abrirActualizarTarifas()">
+            <i class="fa-solid fa-pen-to-square"></i>Actualizar Tarifas
+          </button>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr>
+              <th>Tipo de Habitacion</th><th>Canal</th>
+              <th>Tarifa Base</th><th>Vigencia</th><th>Estado</th><th></th>
+            </tr></thead>
+            <tbody id="tablaTarifas">
+              <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-faint)">
+                Seleccione un canal para ver las tarifas
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB DISPONIBILIDAD -->
+      <div id="tabDisponibilidad" class="tab-panel">
+        <div class="card" style="text-align:center;padding:40px;color:var(--text-faint)">
+          <div style="font-size:48px;margin-bottom:12px;opacity:.3"><i class="fa-solid fa-table-cells"></i></div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:6px">Mapa de Disponibilidad</div>
+          <div class="text-sm">Sincroniza automaticamente con los canales cada 2 minutos</div>
+          <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="sincronizarCanales()">
+            <i class="fa-solid fa-rotate"></i>Forzar Sincronizacion
+          </button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL DETALLE RESERVA -->
+<div class="modal-overlay" id="modalDetalle">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="dtTitulo">Reserva Externa</h3>
+      <button class="btn-close" onclick="cerrarModal('modalDetalle')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" id="dtBody"></div>
+    <div class="modal-footer" id="dtFooter">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalDetalle')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ACTUALIZAR TARIFAS -->
+<div class="modal-overlay" id="modalTarifas">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-tag" style="color:var(--accent)"></i> Actualizar Tarifas</h3>
+      <button class="btn-close" onclick="cerrarModal('modalTarifas')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Canal</label>
+        <select class="form-control" id="trCanal">
+          <option value="">Cargando...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tipo de Habitacion</label>
+        <select class="form-control" id="trTipo">
+          <option value="">Cargando...</option>
+        </select>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label>Desde</label>
+          <input type="date" class="form-control" id="trDesde">
+        </div>
+        <div class="form-group">
+          <label>Hasta</label>
+          <input type="date" class="form-control" id="trHasta">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Precio (S/.)</label>
+        <input type="number" class="form-control" id="trPrecio" placeholder="0.00" step="0.01" min="0">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalTarifas')">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarTarifas()"><i class="fa-solid fa-check"></i>Actualizar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script>
+initLayout('channel');
+
+let canales = [];
+
+const CANAL_ICON = {
+  BOOKING:  '<i class="fa-solid fa-hotel" style="color:#4d88ff"></i>',
+  AIRBNB:   '<i class="fa-brands fa-airbnb" style="color:#ff5a5a"></i>',
+  EXPEDIA:  '<i class="fa-solid fa-plane" style="color:var(--yellow)"></i>',
+  DESPEGAR: '<i class="fa-solid fa-paper-plane" style="color:#00aaff"></i>',
+  DIRECTO:  '<i class="fa-solid fa-globe" style="color:var(--green)"></i>'
+};
+
+function getCanalIcon(nombre) {
+  const key = (nombre||'').toUpperCase().split('.')[0].split(' ')[0];
+  return CANAL_ICON[key] || '<i class="fa-solid fa-satellite-dish" style="color:var(--text-muted)"></i>';
+}
+
+function getCanalBadgeClass(nombre) {
+  const key = (nombre||'').toUpperCase().split('.')[0].split(' ')[0];
+  return 'chan-' + (CANAL_ICON[key] ? key : 'default');
+}
+
+function fMoneda(v) { return 'S/ ' + Number(v||0).toFixed(2); }
+function fFecha(s) {
+  if (!s) return '&mdash;';
+  const d = new Date(s);
+  return d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'2-digit'});
+}
+function fFechaHora(s) {
+  if (!s) return '&mdash;';
+  const d = new Date(s);
+  return d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'}) + ' ' +
+         d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function init() {
+  await Promise.all([cargarCanales(), cargarReservas()]);
+}
+
+// ── CANALES ────────────────────────────────────────────────
+async function cargarCanales() {
+  try {
+    const res = await api.get('/channel/canales');
+    canales = res.data || [];
+
+    // Render canal cards
+    document.getElementById('canalesRow').innerHTML = canales.length
+      ? canales.map(c => {
+          const key = (c.nombre||'').toUpperCase().split('.')[0].split(' ')[0];
+          return `
+          <div class="canal-card">
+            <div class="canal-header">
+              <div class="canal-icon">${getCanalIcon(c.nombre)}</div>
+              <div>
+                <div class="canal-nombre">${c.nombre}
+                  ${c.nuevas > 0 ? `<span class="badge-nuevas">${c.nuevas}</span>` : ''}
+                </div>
+                <div class="canal-estado" style="color:${c.activo ? 'var(--green)' : 'var(--red)'}">
+                  <i class="fa-solid fa-circle" style="font-size:7px"></i>
+                  ${c.activo ? 'ACTIVO' : 'INACTIVO'}
+                  ${c.ultimaSync ? ' &middot; sync ' + fFechaHora(c.ultimaSync) : ''}
+                </div>
+              </div>
+            </div>
+            <div class="canal-stats">
+              <div class="cs">
+                <div class="v">${c.total}</div>
+                <div class="l">Total mes</div>
+              </div>
+              <div class="cs">
+                <div class="v" style="color:var(--red)">${c.nuevas}</div>
+                <div class="l">Nuevas</div>
+              </div>
+              <div class="cs">
+                <div class="v" style="font-size:13px">${Number(c.monto||0).toFixed(0)}</div>
+                <div class="l">S/ mes</div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')
+      : '<div style="color:var(--text-faint);padding:20px">Sin canales configurados</div>';
+
+    // Poblar selects de canales
+    const optHtml = canales.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    ['fCanal', 'trCanal', 'tfCanal'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && id !== 'fCanal') el.innerHTML = optHtml;
+      else if (el) el.innerHTML = '<option value="">Todos los canales</option>' + optHtml;
+    });
+
+    // Barras ingresos
+    const total = canales.reduce((s, c) => s + Number(c.monto||0), 0);
+    if (total > 0) {
+      const CANAL_COLORS = ['#4d88ff','#ff5a5a','var(--green)','var(--yellow)','#00aaff'];
+      document.getElementById('canalesBarras').innerHTML = canales.map((c, i) => {
+        const pct = Math.round((Number(c.monto||0) / total) * 100);
+        return `
+        <div class="canal-bar-row">
+          <div class="canal-bar-label">${getCanalIcon(c.nombre)} ${c.nombre}</div>
+          <div class="canal-bar-track">
+            <div class="canal-bar-fill" style="width:${pct}%;background:${CANAL_COLORS[i % CANAL_COLORS.length]}"></div>
+          </div>
+          <div class="canal-bar-val">${fMoneda(c.monto)} (${pct}%)</div>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {}
+}
+
+// ── RESERVAS ───────────────────────────────────────────────
+async function cargarReservas() {
+  const est = document.getElementById('fEstado').value;
+  const can = document.getElementById('fCanal')?.value || '';
+  try {
+    let url = '/channel/reservas?estado=' + est;
+    if (can) url += '&idCanal=' + can;
+    const res = await api.get(url);
+    const tbody = document.getElementById('tablaReservas');
+    if (!res.data.length) {
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-faint)">Sin reservas${est ? ' ' + est.toLowerCase() : ''}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = res.data.map(r => `
+      <tr>
+        <td>
+          <span style="font-size:18px">${getCanalIcon(r.canal)}</span>
+          <span class="badge ${getCanalBadgeClass(r.canal)}" style="margin-left:4px;font-size:11px">${r.canal}</span>
+        </td>
+        <td style="font-family:monospace;font-size:11px">${r.extId}</td>
+        <td>
+          <div style="font-weight:600">${r.huesped}</div>
+          <div class="text-sm text-muted">${r.email || ''}</div>
+        </td>
+        <td>${fFecha(r.entrada)}</td>
+        <td>${fFecha(r.salida)}</td>
+        <td class="text-sm">${r.tipo || '&mdash;'}</td>
+        <td>
+          <div style="font-weight:600">${fMoneda(r.total)}</div>
+          <div class="text-sm text-muted">${r.moneda || 'PEN'}</div>
+        </td>
+        <td style="color:var(--red)">${r.comision > 0 ? fMoneda(r.comision) : '&mdash;'}</td>
+        <td>
+          <span class="badge b-${r.estado}">${r.estado}</span>
+          ${r.error ? `<div class="text-sm" style="color:var(--red);margin-top:2px">${r.error}</div>` : ''}
+        </td>
+        <td>
+          ${r.estado === 'NUEVA' ? `
+            <button class="btn-proc" onclick="procesarReserva(${r.id})"><i class="fa-solid fa-check"></i> Procesar</button>
+            <button class="btn-canc" onclick="cancelarReserva(${r.id})"><i class="fa-solid fa-xmark"></i></button>`
+          : `<button class="btn-ver" onclick="verDetalle(${r.id})">Ver</button>`}
+        </td>
+      </tr>`).join('');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function procesarReserva(id) {
+  try {
+    const res = await api.post('/channel/reservas/' + id + '/procesar', {});
+    toast('Reserva procesada &rarr; ID local: ' + res.data.idReserva, 'success');
+    init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function cancelarReserva(id) {
+  if (!confirm('Cancelar esta reserva externa?')) return;
+  try {
+    await api.post('/channel/reservas/' + id + '/cancelar', {});
+    toast('Reserva cancelada', 'success');
+    cargarReservas();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function procesarTodas() {
+  const res = await api.get('/channel/reservas?estado=NUEVA');
+  const nuevas = res.data || [];
+  if (!nuevas.length) { toast('Sin reservas nuevas', 'info'); return; }
+  let ok = 0, err = 0;
+  for (const r of nuevas) {
+    try { await api.post('/channel/reservas/' + r.id + '/procesar', {}); ok++; }
+    catch(e) { err++; }
+  }
+  toast('Procesadas: ' + ok + ' OK, ' + err + ' errores', 'success');
+  init();
+}
+
+async function verDetalle(id) {
+  try {
+    const res = await api.get('/channel/reservas');
+    const r = res.data?.find(x => x.id === id);
+    if (!r) { toast('No encontrado', 'error'); return; }
+    document.getElementById('dtTitulo').innerHTML = `${getCanalIcon(r.canal)} ${r.canal} &middot; ${r.extId}`;
+    document.getElementById('dtBody').innerHTML = `
+      <div class="card card-sm">
+        <div class="info-row"><span style="color:var(--text-muted)">Huesped</span><span style="font-weight:600">${r.huesped}</span></div>
+        <div class="info-row"><span style="color:var(--text-muted)">Email</span><span>${r.email || '&mdash;'}</span></div>
+        <div class="info-row"><span style="color:var(--text-muted)">Tipo habitacion</span><span>${r.tipo || '&mdash;'}</span></div>
+        <div class="info-row"><span style="color:var(--text-muted)">Check-in</span><span>${fFecha(r.entrada)}</span></div>
+        <div class="info-row"><span style="color:var(--text-muted)">Check-out</span><span>${fFecha(r.salida)}</span></div>
+        <div class="info-row"><span style="color:var(--text-muted)">Adultos</span><span>${r.adultos}</span></div>
+        <div class="info-row"><span style="color:var(--text-muted)">Total</span><span style="font-weight:700">${fMoneda(r.total)} ${r.moneda || ''}</span></div>
+        <div class="info-row"><span style="color:var(--text-muted)">Comision</span><span style="color:var(--red)">${fMoneda(r.comision)}</span></div>
+        <div class="info-row"><span style="color:var(--text-muted)">Estado</span><span class="badge b-${r.estado}">${r.estado}</span></div>
+        <div class="info-row"><span style="color:var(--text-muted)">Recibida</span><span>${fFechaHora(r.fecha)}</span></div>
+      </div>`;
+    document.getElementById('modalDetalle').classList.add('open');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── SINCRONIZAR ────────────────────────────────────────────
+async function sincronizarCanales() {
+  const btn = document.getElementById('btnSync');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
+  try {
+    await api.post('/channel/sync', {});
+    toast('Sincronizacion completada', 'success');
+    await init();
+  } catch(e) { toast(e.message, 'error'); }
+  finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-satellite-dish"></i>Sincronizar';
+  }
+}
+
+// ── TARIFAS ────────────────────────────────────────────────
+async function cargarTarifas() {
+  const idCanal = document.getElementById('tfCanal').value;
+  if (!idCanal) return;
+  try {
+    const res = await api.get('/channel/tarifas?idCanal=' + idCanal);
+    const tbody = document.getElementById('tablaTarifas');
+    if (!res.data?.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-faint)">Sin tarifas configuradas para este canal</td></tr>';
+      return;
+    }
+    tbody.innerHTML = res.data.map(t => `
+      <tr>
+        <td style="font-weight:600">${t.tipoHab}</td>
+        <td>${getCanalIcon(t.canal)} ${t.canal}</td>
+        <td>
+          <div style="font-size:15px;font-weight:700">${fMoneda(t.precio)}</div>
+          <div class="text-sm text-muted">por noche</div>
+        </td>
+        <td class="text-sm">
+          ${t.fechaDesde ? fFecha(t.fechaDesde) + ' &rarr; ' + fFecha(t.fechaHasta) : 'Sin vigencia'}
+        </td>
+        <td>
+          <span class="badge ${t.activa ? 'badge-green' : 'badge-gray'}">${t.activa ? 'Activa' : 'Inactiva'}</span>
+        </td>
+        <td>
+          <button class="btn-ver" onclick="abrirActualizarTarifas(${t.idTipoHab},${t.precio})">Editar</button>
+        </td>
+      </tr>`).join('');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function abrirActualizarTarifas(idTipoHabPre, precioPre) {
+  try {
+    const res = await api.get('/habitaciones/tipos');
+    document.getElementById('trTipo').innerHTML =
+      (res.data||[]).map(t => `<option value="${t.id}" ${t.id == idTipoHabPre ? 'selected' : ''}>${t.nombre}</option>`).join('');
+  } catch(e) {}
+  const hoy = new Date();
+  document.getElementById('trDesde').value = hoy.toISOString().slice(0, 10);
+  document.getElementById('trHasta').value = new Date(hoy.setMonth(hoy.getMonth() + 1)).toISOString().slice(0, 10);
+  if (precioPre) document.getElementById('trPrecio').value = precioPre;
+  document.getElementById('modalTarifas').classList.add('open');
+}
+
+async function confirmarTarifas() {
+  const idCanal    = parseInt(document.getElementById('trCanal').value);
+  const idTipoHab  = parseInt(document.getElementById('trTipo').value);
+  const fechaDesde = document.getElementById('trDesde').value;
+  const fechaHasta = document.getElementById('trHasta').value;
+  const precio     = parseFloat(document.getElementById('trPrecio').value);
+  if (!precio || precio <= 0) { toast('Precio invalido', 'warning'); return; }
+  try {
+    await api.put('/channel/tarifas', { idCanal, idTipoHab, fechaDesde, fechaHasta, precio });
+    toast('Tarifas actualizadas en el canal', 'success');
+    cerrarModal('modalTarifas');
+    cargarTarifas();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── UTIL ───────────────────────────────────────────────────
+function cambiarTab(tab, btn) {
+  document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'tarifas') cargarTarifas();
+}
+
+// Info row para modal detalle (definida en el inline HTML)
+const style = document.createElement('style');
+style.textContent = '.info-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}.info-row:last-child{border-bottom:none}';
+document.head.appendChild(style);
+
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// INIT + auto-refresh 60s
+init();
+setInterval(cargarCanales, 60000);
+</script>
+</body>
+</html>

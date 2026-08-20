@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP — Administracion</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* ── KPI grandes dashboard ─────────────────────────────────── */
+    .kpi-grid-admin {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card-admin {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card-admin:hover { border-color: rgba(255,255,255,.14); }
+    .kpi-card-admin .kpi-label {
+      font-size: 11px; font-weight: 600; color: var(--text-faint);
+      text-transform: uppercase; letter-spacing: .07em; margin-bottom: 10px;
+    }
+    .kpi-card-admin .kpi-value-big {
+      font-size: 36px; font-weight: 800; line-height: 1; margin-bottom: 6px;
+    }
+    .kpi-card-admin .kpi-sub { font-size: 12px; color: var(--text-muted); }
+    .kpi-card-admin .kpi-icon-bg {
+      position: absolute; right: 18px; top: 18px;
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; opacity: .9;
+    }
+    .kpi-card-admin.kpi-rojo   { border-left: 3px solid var(--red); }
+    .kpi-card-admin.kpi-amarillo { border-left: 3px solid var(--yellow); }
+    .kpi-card-admin.kpi-verde  { border-left: 3px solid var(--green); }
+    .kpi-card-admin.kpi-azul   { border-left: 3px solid var(--accent); }
+
+    /* ── Sub-tabs de reportes ──────────────────────────────────── */
+    .subtabs {
+      display: flex; gap: 2px;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      padding: 3px; margin-bottom: 20px; width: fit-content;
+    }
+    .subtab-btn {
+      padding: 6px 14px; font-size: 12px; font-weight: 500;
+      color: var(--text-muted); background: none; border: none;
+      border-radius: 4px; transition: var(--transition); cursor: pointer;
+    }
+    .subtab-btn:hover { color: var(--text); }
+    .subtab-btn.active {
+      background: var(--bg-card); color: var(--text);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ── Filtros de reporte ────────────────────────────────────── */
+    .reporte-filtros {
+      display: flex; align-items: flex-end; gap: 12px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 18px;
+      margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .reporte-filtros .form-group { margin-bottom: 0; min-width: 150px; }
+
+    /* ── Avatar de usuario ─────────────────────────────────────── */
+    .usr-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #fff;
+      background: var(--accent); flex-shrink: 0;
+    }
+
+    /* ── Fila totales tabla ────────────────────────────────────── */
+    tr.fila-total td {
+      background: rgba(59,130,246,.06);
+      font-weight: 700; color: var(--text);
+      border-top: 2px solid var(--border);
+    }
+
+    /* ── Panel doble dashboard ─────────────────────────────────── */
+    .dash-doble {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    }
+
+    /* ── Badge estado usuario ──────────────────────────────────── */
+    .usr-status-on  { display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; color: var(--green); }
+    .usr-status-off { display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; color: var(--text-muted); }
+    .usr-status-on::before, .usr-status-off::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+    }
+    .usr-status-on::before  { background: var(--green); }
+    .usr-status-off::before { background: var(--text-faint); }
+
+    /* ── Barra de busqueda huespedes admin ─────────────────────── */
+    .hsp-admin-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+    }
+
+    /* ── Loading overlay tabla ─────────────────────────────────── */
+    .tbl-loading {
+      text-align: center; padding: 40px;
+      color: var(--text-muted); font-size: 13px;
+    }
+    .tbl-loading .spinner { margin: 0 auto 10px; }
+
+    @media (max-width: 1100px) {
+      .kpi-grid-admin { grid-template-columns: repeat(2, 1fr); }
+      .dash-doble { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 700px) {
+      .kpi-grid-admin { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="app-layout">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <!-- ── Page Header ─────────────────────────────────── -->
+      <div class="page-header">
+        <h1><i class="fa-solid fa-chart-line"></i>Administracion</h1>
+        <div class="page-header-actions" id="adminPageActions"></div>
+      </div>
+
+      <!-- ── Tabs principales ────────────────────────────── -->
+      <div class="tabs" id="adminTabs">
+        <button class="tab-btn active" data-tab="dashboard">
+          <i class="fa-solid fa-gauge-high"></i> Dashboard
+        </button>
+        <button class="tab-btn" data-tab="reportes">
+          <i class="fa-solid fa-chart-bar"></i> Reportes
+        </button>
+        <button class="tab-btn" data-tab="usuarios">
+          <i class="fa-solid fa-user-gear"></i> Usuarios
+        </button>
+        <button class="tab-btn" data-tab="huespedes">
+          <i class="fa-solid fa-users"></i> Huespedes
+        </button>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           TAB 1: DASHBOARD
+      ════════════════════════════════════════════════════ -->
+      <div class="tab-panel active" id="panel-dashboard">
+
+        <!-- KPIs grandes -->
+        <div class="kpi-grid-admin" id="kpiGrid">
+          <!-- Skeleton mientras carga -->
+          <div class="kpi-card-admin kpi-azul">
+            <div class="kpi-label">Ocupacion actual</div>
+            <div class="kpi-value-big text-accent skeleton" style="height:36px;width:80px;border-radius:6px">&nbsp;</div>
+            <div class="kpi-sub">Calculando...</div>
+            <div class="kpi-icon-bg" style="background:var(--accent-light);color:var(--accent)">
+              <i class="fa-solid fa-bed"></i>
+            </div>
+          </div>
+          <div class="kpi-card-admin kpi-verde">
+            <div class="kpi-label">Ingresos del mes</div>
+            <div class="kpi-value-big text-green skeleton" style="height:36px;width:120px;border-radius:6px">&nbsp;</div>
+            <div class="kpi-sub">Calculando...</div>
+            <div class="kpi-icon-bg" style="background:var(--green-light);color:var(--green)">
+              <i class="fa-solid fa-sack-dollar"></i>
+            </div>
+          </div>
+          <div class="kpi-card-admin kpi-amarillo">
+            <div class="kpi-label">Reservas activas</div>
+            <div class="kpi-value-big text-yellow skeleton" style="height:36px;width:60px;border-radius:6px">&nbsp;</div>
+            <div class="kpi-sub">Calculando...</div>
+            <div class="kpi-icon-bg" style="background:var(--yellow-light);color:var(--yellow)">
+              <i class="fa-solid fa-calendar-check"></i>
+            </div>
+          </div>
+          <div class="kpi-card-admin kpi-azul">
+            <div class="kpi-label">Total huespedes</div>
+            <div class="kpi-value-big text-accent skeleton" style="height:36px;width:70px;border-radius:6px">&nbsp;</div>
+            <div class="kpi-sub">Registrados</div>
+            <div class="kpi-icon-bg" style="background:var(--accent-light);color:var(--accent)">
+              <i class="fa-solid fa-users"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Doble panel inferior -->
+        <div class="dash-doble">
+          <!-- Ocupacion 7 dias -->
+          <div class="card">
+            <div class="card-title"><i class="fa-solid fa-chart-area"></i> Ocupacion ultimos 7 dias</div>
+            <div id="tablaOcupacionSemanal">
+              <div class="tbl-loading"><div class="spinner"></div>Cargando datos...</div>
+            </div>
+          </div>
+          <!-- Top 5 habitaciones -->
+          <div class="card">
+            <div class="card-title"><i class="fa-solid fa-trophy"></i> Top 5 Habitaciones mas solicitadas</div>
+            <div id="tablaTopHabitaciones">
+              <div class="tbl-loading"><div class="spinner"></div>Cargando datos...</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panel-dashboard -->
+
+      <!-- ═══════════════════════════════════════════════════
+           TAB 2: REPORTES
+      ════════════════════════════════════════════════════ -->
+      <div class="tab-panel" id="panel-reportes">
+
+        <!-- Filtros -->
+        <div class="reporte-filtros">
+          <div class="form-group">
+            <label>Fecha inicio</label>
+            <input type="date" id="rptInicio" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Fecha fin</label>
+            <input type="date" id="rptFin" class="form-control">
+          </div>
+          <button class="btn btn-primary" id="btnGenerar" onclick="adminGenerarReporte()">
+            <i class="fa-solid fa-chart-bar"></i> Generar
+          </button>
+        </div>
+
+        <!-- Sub-tabs reporte -->
+        <div class="subtabs" id="rptSubtabs">
+          <button class="subtab-btn active" data-rpt="ocupacion">Ocupacion</button>
+          <button class="subtab-btn" data-rpt="ingresos">Ingresos</button>
+          <button class="subtab-btn" data-rpt="caja">Caja</button>
+          <button class="subtab-btn" data-rpt="huespedes">Huespedes</button>
+        </div>
+
+        <!-- Contenido reporte dinamico -->
+        <div id="rptContenido">
+          <div class="empty-state">
+            <i class="fa-solid fa-chart-bar"></i>
+            <p>Seleccione un rango de fechas y haga clic en Generar</p>
+          </div>
+        </div>
+
+      </div><!-- /panel-reportes -->
+
+      <!-- ═══════════════════════════════════════════════════
+           TAB 3: USUARIOS
+      ════════════════════════════════════════════════════ -->
+      <div class="tab-panel" id="panel-usuarios">
+        <div class="page-header" style="margin-bottom:16px">
+          <span style="font-size:14px;color:var(--text-muted)" id="lblUsuariosTotal"></span>
+          <button class="btn btn-primary" onclick="abrirModalUsuario()">
+            <i class="fa-solid fa-user-plus"></i> Nuevo Usuario
+          </button>
+        </div>
+        <div class="table-wrapper">
+          <table id="tablaUsuarios">
+            <thead>
+              <tr>
+                <th style="width:36px"></th>
+                <th>Nombre</th>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Email</th>
+                <th>Estado</th>
+                <th>Ultimo login</th>
+                <th style="width:120px">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyUsuarios">
+              <tr><td colspan="8"><div class="tbl-loading"><div class="spinner"></div>Cargando...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div><!-- /panel-usuarios -->
+
+      <!-- ═══════════════════════════════════════════════════
+           TAB 4: HUESPEDES
+      ════════════════════════════════════════════════════ -->
+      <div class="tab-panel" id="panel-huespedes">
+        <div class="hsp-admin-header">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="hspSearch" placeholder="Buscar por nombre, DNI, email..."
+                   oninput="adminBuscarHuespedes()">
+          </div>
+          <span style="font-size:12px;color:var(--text-muted)" id="lblHspTotal"></span>
+        </div>
+        <div class="table-wrapper">
+          <table id="tablaHuespedes">
+            <thead>
+              <tr>
+                <th>Nombre completo</th>
+                <th>DNI / Pasaporte</th>
+                <th>Email</th>
+                <th>Telefono</th>
+                <th>Pais</th>
+                <th>Visitas</th>
+                <th>Ultimo check-in</th>
+                <th style="width:90px"></th>
+              </tr>
+            </thead>
+            <tbody id="tbodyHuespedes">
+              <tr><td colspan="8"><div class="tbl-loading"><div class="spinner"></div>Cargando...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Paginacion simple -->
+        <div style="display:flex;justify-content:center;gap:8px;margin-top:16px" id="hspPag"></div>
+      </div><!-- /panel-huespedes -->
+
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     MODAL USUARIO
+════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalUsuario">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalUsrTitulo">Nuevo Usuario</h3>
+      <button class="btn-close" onclick="cerrarModalUsuario()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label>Nombres</label>
+          <input type="text" id="usrNombres" class="form-control" placeholder="Nombre(s)">
+        </div>
+        <div class="form-group">
+          <label>Apellidos</label>
+          <input type="text" id="usrApellidos" class="form-control" placeholder="Apellido(s)">
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label>Usuario (login)</label>
+          <input type="text" id="usrLogin" class="form-control" placeholder="ej: jperez" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="usrEmail" class="form-control" placeholder="correo@hotel.com">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Rol</label>
+        <select id="usrRol" class="form-control">
+          <option value="ADMIN">ADMIN — Acceso total</option>
+          <option value="RECEPCION">RECEPCION — Recepcion y reservas</option>
+          <option value="CAJA">CAJA — Solo caja y pagos</option>
+          <option value="HOUSEKEEPING">HOUSEKEEPING — Solo limpieza</option>
+        </select>
+      </div>
+      <div id="usrPassSection">
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label>Contrasena</label>
+            <input type="password" id="usrPass" class="form-control" placeholder="Min. 6 caracteres" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label>Confirmar contrasena</label>
+            <input type="password" id="usrPass2" class="form-control" placeholder="Repetir contrasena">
+          </div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="toggle-wrap">
+          <span class="toggle">
+            <input type="checkbox" id="usrActivo" checked>
+            <span class="toggle-slider"></span>
+          </span>
+          <span style="font-size:13px;color:var(--text)">Usuario activo</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModalUsuario()">Cancelar</button>
+      <button class="btn btn-primary" id="btnGuardarUsr" onclick="guardarUsuario()">
+        <i class="fa-solid fa-floppy-disk"></i> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script src="js/modules/admin.js"></script>
+<script>
+  initLayout('admin');
+  adminInit();
+</script>
+</body>
+</html>

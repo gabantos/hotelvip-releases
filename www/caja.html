@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP — Caja</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* ── TURNO CARD ─────────────────────────────────── */
+    .turno-card{background:rgba(15,23,42,.5);border-radius:10px;padding:16px;
+      border:1px solid rgba(255,255,255,.06);margin-bottom:14px}
+    .turno-field{margin-bottom:8px}
+    .turno-field .lbl{font-size:10px;font-weight:600;color:rgba(255,255,255,.3);
+      text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+    .turno-field .val{font-size:22px;font-weight:700;color:#fff}
+    .turno-field .val.sm{font-size:14px}
+    .estado-turno{display:inline-flex;align-items:center;gap:6px;
+      padding:5px 12px;border-radius:12px;font-size:12px;font-weight:600;margin-bottom:12px}
+    .estado-ABIERTO{background:rgba(39,174,96,.15);color:#27AE60;border:1px solid rgba(39,174,96,.25)}
+    .estado-CERRADO{background:rgba(231,76,60,.15);color:#E74C3C;border:1px solid rgba(231,76,60,.25)}
+    .estado-SIN{background:rgba(255,255,255,.06);color:rgba(255,255,255,.4);
+      border:1px solid rgba(255,255,255,.08)}
+
+    /* ── TIPO CAMBIO ────────────────────────────────── */
+    .tc-box{background:rgba(15,23,42,.4);border-radius:8px;padding:10px;
+      border:1px solid rgba(255,255,255,.06);margin-bottom:12px}
+    .tc-row{display:flex;align-items:center;justify-content:space-between;
+      padding:4px 0;font-size:13px}
+    .tc-tasa{color:#F39C12;font-weight:600}
+    .tc-edit{background:none;border:none;color:rgba(255,255,255,.3);
+      cursor:pointer;font-size:12px;padding:2px 6px;border-radius:4px}
+    .tc-edit:hover{color:#fff;background:rgba(255,255,255,.06)}
+
+    /* ── SECCION TITLE ──────────────────────────────── */
+    .sec-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.4);
+      text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;margin-top:16px}
+    .sec-title:first-child{margin-top:0}
+
+    /* ── RESUMEN DIA ────────────────────────────────── */
+    .dia-row{display:flex;justify-content:space-between;font-size:12px;
+      padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);color:rgba(255,255,255,.6)}
+    .dia-row:last-child{border-bottom:none}
+    .dia-row strong{color:#fff}
+
+    /* ── PANEL COBROS ───────────────────────────────── */
+    .reserva-card{background:rgba(15,23,42,.5);border-radius:10px;padding:14px;
+      border:1px solid rgba(255,255,255,.08);margin-bottom:14px}
+    .rc-row{display:flex;justify-content:space-between;font-size:13px;
+      margin-bottom:5px;color:rgba(255,255,255,.6)}
+    .rc-row strong{color:#fff}
+    .rc-total{display:flex;justify-content:space-between;font-size:16px;
+      font-weight:700;color:#fff;margin-top:10px;padding-top:10px;
+      border-top:1px solid rgba(255,255,255,.06)}
+    .rc-saldo{color:#E74C3C}
+    .rc-saldo.ok{color:#27AE60}
+
+    /* ── METODOS PAGO ───────────────────────────────── */
+    .metodos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+    .met-btn{padding:10px 6px;background:rgba(15,23,42,.5);border:2px solid rgba(255,255,255,.08);
+      border-radius:8px;color:rgba(255,255,255,.5);cursor:pointer;
+      text-align:center;font-size:12px;font-weight:600;transition:all .15s}
+    .met-btn:hover{border-color:rgba(255,255,255,.2);color:#fff}
+    .met-btn.selected{border-color:#2980B9;background:rgba(41,128,185,.12);color:#fff}
+    .met-btn .ico{font-size:18px;display:block;margin-bottom:4px}
+
+    /* ── MONTO ──────────────────────────────────────── */
+    .monto-box{background:rgba(15,23,42,.5);border-radius:10px;padding:14px;margin-bottom:12px;
+      border:1px solid rgba(255,255,255,.06)}
+    .monto-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    .sel-moneda{padding:9px 10px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);border-radius:6px;
+      color:#fff;font-size:13px;outline:none;min-width:70px}
+    .sel-moneda option{background:#1A2740}
+    .monto-input{flex:1;padding:10px 14px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);border-radius:7px;
+      color:#fff;font-size:20px;font-weight:700;outline:none;text-align:right}
+    .monto-input:focus{border-color:#27AE60}
+    .equivalente{font-size:12px;color:rgba(255,255,255,.4);text-align:right;margin-top:4px;min-height:18px}
+
+    /* ── NUMPAD ─────────────────────────────────────── */
+    .num-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+    .num-key{padding:12px;background:rgba(15,23,42,.6);border:1px solid rgba(255,255,255,.08);
+      border-radius:8px;font-size:16px;font-weight:600;color:#fff;cursor:pointer;
+      text-align:center;transition:background .1s;user-select:none}
+    .num-key:hover{background:rgba(255,255,255,.06)}
+    .num-key:active{transform:scale(.96)}
+    .num-key.del{color:#E74C3C}
+    .num-key.ok{background:#27AE60;color:#fff}
+    .num-key.ok:hover{background:#2ECC71}
+
+    /* ── PAGOS LISTA ────────────────────────────────── */
+    .pago-item{display:flex;align-items:center;justify-content:space-between;
+      padding:10px 12px;background:rgba(15,23,42,.4);border-radius:8px;margin-bottom:6px;
+      border:1px solid rgba(255,255,255,.06)}
+    .pago-item.anulado{opacity:.4}
+    .pi-met{font-size:11px;color:rgba(255,255,255,.35)}
+    .pi-nom{font-size:13px;font-weight:600;color:#27AE60}
+    .pi-ref{font-size:11px;color:rgba(255,255,255,.3)}
+    .pi-anulado-tag{font-size:10px;color:#E74C3C;font-weight:600}
+
+    /* ── TABS CONTENT ───────────────────────────────── */
+    .mov-table-wrapper{margin-top:8px}
+
+    /* ── CIERRE ARQUEO ──────────────────────────────── */
+    .arqueo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+    .arq-item{background:rgba(15,23,42,.5);border:1px solid rgba(255,255,255,.06);
+      border-radius:8px;padding:8px;text-align:center}
+    .arq-item .denom{font-size:11px;color:rgba(255,255,255,.4);margin-bottom:4px}
+    .arq-item input{width:100%;padding:6px;background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);border-radius:5px;
+      color:#fff;font-size:13px;text-align:center;outline:none}
+  </style>
+</head>
+<body>
+<div id="app-layout">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <!-- PAGE HEADER -->
+      <div class="page-header">
+        <h1 class="page-title">Caja</h1>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost" onclick="cargarResumenDia()">
+            <i class="fa fa-sync"></i> Actualizar
+          </button>
+          <button class="btn btn-success" id="btnAbrirTurno" onclick="modalAbrirTurno()">
+            <i class="fa fa-play-circle"></i> Abrir Turno
+          </button>
+          <button class="btn btn-danger" id="btnCerrarTurno" style="display:none"
+                  onclick="modalCerrarTurno()">
+            <i class="fa fa-stop-circle"></i> Cerrar Turno
+          </button>
+        </div>
+      </div>
+
+      <!-- TURNO ACTIVO -->
+      <div id="panelTurno" class="card" style="display:none;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">
+          <div>
+            <span class="estado-turno estado-ABIERTO" id="estadoTurno">
+              <i class="fa fa-circle fa-xs"></i> TURNO ABIERTO
+            </span>
+            <div style="font-weight:600;font-size:15px" id="turNombre">—</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px" id="turApertura">—</div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div style="text-align:right">
+              <div style="font-size:11px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.5px">Saldo Actual</div>
+              <div style="font-size:26px;font-weight:700;color:#27AE60" id="turSaldo">S/ 0.00</div>
+            </div>
+            <div class="divider" style="width:1px;height:50px"></div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.5px">Cobrado turno</div>
+              <div style="font-size:20px;font-weight:700" id="kpiCobrado">—</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.5px">Pagos</div>
+              <div style="font-size:20px;font-weight:700" id="kpiPagos">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" style="margin-bottom:20px">
+        <div class="kpi-card">
+          <div class="kpi-label">Ingresos hoy</div>
+          <div class="kpi-value" id="kpiIngresos" style="color:#27AE60">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Egresos hoy</div>
+          <div class="kpi-value" id="kpiEgresos" style="color:#E74C3C">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Saldo en caja</div>
+          <div class="kpi-value" id="kpiSaldo">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Transacciones hoy</div>
+          <div class="kpi-value" id="kpiTransacciones">—</div>
+        </div>
+      </div>
+
+      <!-- TIPO DE CAMBIO (compacto, inline) -->
+      <div class="card" style="margin-bottom:20px;display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px">
+          Tipo de Cambio
+        </span>
+        <div id="tcInline" style="display:flex;gap:24px;flex-wrap:wrap;font-size:13px">
+          <span style="color:rgba(255,255,255,.3)">Cargando...</span>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs" style="margin-bottom:20px">
+        <button class="tab-btn active" onclick="cambiarTab('cobros',this)">
+          <i class="fa fa-hand-holding-usd"></i> Cobros
+        </button>
+        <button class="tab-btn" onclick="cambiarTab('movimientos',this)">
+          <i class="fa fa-exchange-alt"></i> Movimientos
+        </button>
+        <button class="tab-btn" onclick="cambiarTab('resumen',this)">
+          <i class="fa fa-chart-bar"></i> Resumen
+        </button>
+      </div>
+
+      <!-- TAB COBROS -->
+      <div class="tab-panel active" id="panelCobros">
+        <div style="max-width:680px">
+          <div class="sec-title" style="margin-top:0">Buscar Reserva para Cobrar</div>
+          <div style="display:flex;gap:8px;margin-bottom:16px">
+            <div class="search-box" style="flex:1">
+              <i class="fa fa-search"></i>
+              <input type="text" id="inBuscarRes"
+                     placeholder="Habitacion, codigo o nombre del huesped..."
+                     onkeydown="if(event.key==='Enter') buscarReserva()">
+            </div>
+            <button class="btn btn-primary" onclick="buscarReserva()">Buscar</button>
+          </div>
+
+          <!-- PLACEHOLDER -->
+          <div id="placeholderCobro" class="empty-state">
+            <i class="fa fa-cash-register fa-2x" style="margin-bottom:12px;opacity:.3"></i>
+            <p>Busque una reserva para cobrar</p>
+          </div>
+
+          <!-- PANEL RESERVA SELECCIONADA -->
+          <div id="panelReserva" style="display:none">
+            <div class="reserva-card" id="resCard"></div>
+
+            <div class="sec-title">Metodo de Pago</div>
+            <div class="metodos-grid" id="metodosGrid">
+              <div style="grid-column:span 3;color:rgba(255,255,255,.2);text-align:center;padding:12px;font-size:13px">
+                <i class="fa fa-spinner fa-spin"></i> Cargando metodos...
+              </div>
+            </div>
+
+            <div class="monto-box">
+              <div class="monto-row">
+                <select class="sel-moneda" id="selMoneda" onchange="onMonedaChange()">
+                  <option value="PEN">S/</option>
+                  <option value="USD">$</option>
+                </select>
+                <input type="text" class="monto-input" id="inMonto" placeholder="0.00"
+                       oninput="calcEquivalente()">
+              </div>
+              <div class="equivalente" id="lblEquivalente"></div>
+              <input type="text" class="form-control" id="inReferencia"
+                     placeholder="Referencia / N° operacion (opcional)" style="margin-top:8px">
+            </div>
+
+            <!-- NUMPAD -->
+            <div class="num-pad" id="numPad">
+              <div class="num-key" onclick="numKey('7')">7</div>
+              <div class="num-key" onclick="numKey('8')">8</div>
+              <div class="num-key" onclick="numKey('9')">9</div>
+              <div class="num-key" onclick="numKey('4')">4</div>
+              <div class="num-key" onclick="numKey('5')">5</div>
+              <div class="num-key" onclick="numKey('6')">6</div>
+              <div class="num-key" onclick="numKey('1')">1</div>
+              <div class="num-key" onclick="numKey('2')">2</div>
+              <div class="num-key" onclick="numKey('3')">3</div>
+              <div class="num-key" onclick="numKey('.')">.</div>
+              <div class="num-key" onclick="numKey('0')">0</div>
+              <div class="num-key del" onclick="numKey('del')"><i class="fa fa-backspace"></i></div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:12px">
+              <button class="btn btn-success" style="flex:1;padding:14px;font-size:15px"
+                      onclick="registrarCobro()">
+                <i class="fa fa-check-circle"></i> Registrar Cobro
+              </button>
+              <button class="btn btn-ghost" onclick="limpiarPanel()">Cancelar</button>
+            </div>
+
+            <div class="sec-title" style="margin-top:20px">Pagos Registrados</div>
+            <div id="pagosLista"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB MOVIMIENTOS -->
+      <div class="tab-panel" id="panelMovimientos">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div class="sec-title" style="margin:0">Movimientos del Turno Actual</div>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalMovimiento()">
+            <i class="fa fa-plus"></i> Movimiento Manual
+          </button>
+        </div>
+        <div class="table-wrapper mov-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Concepto</th>
+                <th>Tipo</th>
+                <th>Monto</th>
+                <th>Usuario</th>
+              </tr>
+            </thead>
+            <tbody id="movBody">
+              <tr>
+                <td colspan="5" style="text-align:center;padding:30px;color:rgba(255,255,255,.2)">
+                  <i class="fa fa-spinner fa-spin"></i> Cargando...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB RESUMEN -->
+      <div class="tab-panel" id="panelResumen">
+        <div id="resumenDiaBox" style="max-width:480px">
+          <div style="color:rgba(255,255,255,.2);text-align:center;padding:30px">
+            <i class="fa fa-spinner fa-spin"></i> Cargando...
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- ════════════════════════════════════════════════════════
+     MODAL ABRIR TURNO
+════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalAbrir">
+  <div class="modal" style="width:420px">
+    <div class="modal-header">
+      <h3><i class="fa fa-play-circle" style="color:#27AE60"></i> Abrir Turno de Caja</h3>
+      <button class="btn btn-ghost btn-sm" onclick="cerrarModal('modalAbrir')">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Caja</label>
+        <select class="form-control" id="maCaja">
+          <option value="1">Caja Recepcion</option>
+          <option value="2">Caja Bar/Resto</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Saldo Inicial en Efectivo (PEN)</label>
+        <input type="number" class="form-control" id="maSaldo" value="0" min="0" step="0.50">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalAbrir')">Cancelar</button>
+      <button class="btn btn-success" onclick="abrirTurno()">
+        <i class="fa fa-check"></i> Abrir Turno
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     MODAL CERRAR TURNO
+════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalCerrar">
+  <div class="modal" style="width:460px">
+    <div class="modal-header">
+      <h3><i class="fa fa-stop-circle" style="color:#E74C3C"></i> Cierre de Caja</h3>
+      <button class="btn btn-ghost btn-sm" onclick="cerrarModal('modalCerrar')">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="cierreResumen" class="card" style="margin-bottom:14px;padding:12px;font-size:13px"></div>
+
+      <div class="sec-title" style="margin-top:0">Arqueo — Billetes y Monedas PEN</div>
+      <div class="arqueo-grid" id="arqueoGrid"></div>
+
+      <div class="form-group">
+        <label>Saldo Real Contado</label>
+        <input type="number" class="form-control" id="mcSaldoReal" step="0.50"
+               placeholder="0.00" oninput="calcDiferencia()">
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+        <span style="color:rgba(255,255,255,.5)">Saldo sistema</span>
+        <strong id="mcSaldoSist">S/ 0.00</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:600;
+        padding:10px 0;border-top:1px solid rgba(255,255,255,.08)">
+        <span>Diferencia</span>
+        <span id="mcDiferencia" style="color:#F39C12">S/ 0.00</span>
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label>Observaciones</label>
+        <input type="text" class="form-control" id="mcObs" placeholder="Notas del cierre">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalCerrar')">Cancelar</button>
+      <button class="btn btn-danger" onclick="cerrarTurno()">
+        <i class="fa fa-lock"></i> Confirmar Cierre
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     MODAL MOVIMIENTO MANUAL
+════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalMovimiento">
+  <div class="modal" style="width:400px">
+    <div class="modal-header">
+      <h3>Movimiento Manual</h3>
+      <button class="btn btn-ghost btn-sm" onclick="cerrarModal('modalMovimiento')">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Tipo</label>
+        <select class="form-control" id="mmTipo">
+          <option value="INGRESO">Ingreso</option>
+          <option value="EGRESO">Egreso</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Concepto</label>
+        <input type="text" class="form-control" id="mmConcepto" placeholder="Descripcion del movimiento">
+      </div>
+      <div class="form-group">
+        <label>Monto (PEN)</label>
+        <input type="number" class="form-control" id="mmMonto" step="0.10" min="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label>Observaciones</label>
+        <input type="text" class="form-control" id="mmObs" placeholder="Opcional">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalMovimiento')">Cancelar</button>
+      <button class="btn btn-primary" onclick="registrarMovimiento()">
+        <i class="fa fa-check"></i> Registrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script>
+initLayout('caja');
+
+// ── ESTADO ────────────────────────────────────────────────
+let turno         = null;
+let reservaActual = null;
+let metodoSel     = null;
+let metodos       = [];
+let tipoCambios   = {};
+
+// ── TABS ─────────────────────────────────────────────────
+function cambiarTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const id = 'panel' + tab.charAt(0).toUpperCase() + tab.slice(1);
+  document.getElementById(id).classList.add('active');
+  if (tab === 'movimientos') cargarMovimientos();
+  else if (tab === 'resumen') cargarResumenDia();
+}
+
+// ── INIT ──────────────────────────────────────────────────
+async function init() {
+  await Promise.all([
+    cargarTurno(),
+    cargarMetodos(),
+    cargarTipoCambio(),
+    cargarResumenDia()
+  ]);
+}
+
+// ── TURNO ─────────────────────────────────────────────────
+async function cargarTurno() {
+  try {
+    const res = await api.get('/caja/turno-actual');
+    const d = res.data;
+    if (d.turnoAbierto) {
+      turno = d;
+      document.getElementById('panelTurno').style.display       = 'block';
+      document.getElementById('btnAbrirTurno').style.display    = 'none';
+      document.getElementById('btnCerrarTurno').style.display   = '';
+      document.getElementById('turNombre').textContent           = d.caja;
+      document.getElementById('turSaldo').textContent            = fMoneda(d.saldoActual);
+      document.getElementById('turApertura').textContent         = 'Apertura: ' + fFechaHora(d.apertura);
+      document.getElementById('kpiCobrado').textContent          = fMoneda(d.totalCobrado);
+      document.getElementById('kpiPagos').textContent            = d.nroPagos;
+      document.getElementById('kpiSaldo').textContent            = fMoneda(d.saldoActual);
+      document.getElementById('kpiIngresos').textContent         = fMoneda(d.totalCobrado);
+    } else {
+      turno = null;
+      document.getElementById('panelTurno').style.display       = 'none';
+      document.getElementById('btnAbrirTurno').style.display    = '';
+      document.getElementById('btnCerrarTurno').style.display   = 'none';
+      document.getElementById('kpiCobrado').textContent         = '—';
+      document.getElementById('kpiPagos').textContent           = '—';
+      document.getElementById('kpiSaldo').textContent           = '—';
+      document.getElementById('kpiIngresos').textContent        = '—';
+    }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function cargarMetodos() {
+  try {
+    const res = await api.get('/caja/metodos-pago');
+    metodos = res.data;
+    renderMetodos();
+  } catch(e) {}
+}
+
+async function cargarTipoCambio() {
+  try {
+    const res = await api.get('/caja/tipo-cambio');
+    tipoCambios = {};
+    res.data.forEach(tc => { tipoCambios[tc.codigo] = tc; });
+    // Render inline
+    document.getElementById('tcInline').innerHTML = res.data.map(tc => `
+      <span>
+        <strong>${tc.codigo}</strong> → PEN
+        <span class="tc-tasa" style="margin-left:4px">S/ ${tc.tasa.toFixed(4)}</span>
+        <button class="tc-edit" onclick="editarTC('${tc.codigo}','${tc.tasa}')" title="Editar">
+          <i class="fa fa-pencil"></i>
+        </button>
+      </span>`).join('') || '<span style="color:rgba(255,255,255,.3)">Sin datos</span>';
+  } catch(e) {}
+}
+
+async function cargarResumenDia() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const res = await api.get('/caja/resumen-dia?fecha=' + today);
+    const d = res.data;
+    document.getElementById('kpiIngresos').textContent     = fMoneda(d.totalIngresado);
+    document.getElementById('kpiEgresos').textContent      = fMoneda(d.totalDevuelto || 0);
+    document.getElementById('kpiTransacciones').textContent= d.nroPagos;
+
+    document.getElementById('resumenDiaBox').innerHTML = `
+      <div class="card" style="margin-bottom:12px">
+        <h3 style="font-size:13px;font-weight:600;margin-bottom:12px;color:rgba(255,255,255,.7)">
+          Resumen del Dia
+        </h3>
+        <div class="dia-row"><span>Total Ingresado</span><strong style="color:#27AE60">${fMoneda(d.totalIngresado)}</strong></div>
+        <div class="dia-row"><span>Total Devuelto</span><strong style="color:#E74C3C">${fMoneda(d.totalDevuelto||0)}</strong></div>
+        <div class="dia-row"><span>N° Pagos</span><strong>${d.nroPagos}</strong></div>
+        <div class="dia-row"><span>Anulados</span><strong style="color:#F39C12">${d.nroAnulados||0}</strong></div>
+        <div class="dia-row"><span>Reservas Cobradas</span><strong>${d.nroReservas||0}</strong></div>
+      </div>
+      ${d.porMetodo?.length ? `
+      <div class="card">
+        <h3 style="font-size:13px;font-weight:600;margin-bottom:12px;color:rgba(255,255,255,.7)">
+          Por Metodo de Pago
+        </h3>
+        ${d.porMetodo.map(m => `
+          <div class="dia-row">
+            <span><span class="badge badge-gray" style="margin-right:6px">${m.metodo}</span>${m.moneda}</span>
+            <strong>${m.moneda==='PEN' ? fMoneda(m.total) : '$ '+m.total.toFixed(2)}</strong>
+          </div>`).join('')}
+      </div>` : ''}
+    `;
+  } catch(e) {}
+}
+
+async function cargarMovimientos() {
+  const body = document.getElementById('movBody');
+  body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:rgba(255,255,255,.2)"><i class="fa fa-spinner fa-spin"></i></td></tr>';
+  try {
+    const res = await api.get('/caja/movimientos?limit=50');
+    if (!res.data || !res.data.length) {
+      body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:rgba(255,255,255,.2)">Sin movimientos</td></tr>';
+      return;
+    }
+    body.innerHTML = res.data.map(m => `
+      <tr>
+        <td style="font-size:12px;color:rgba(255,255,255,.4)">${fFechaHora(m.fecha)}</td>
+        <td>${m.concepto}</td>
+        <td>
+          <span class="badge ${m.tipo==='INGRESO'?'badge-green':'badge-red'}">${m.tipo}</span>
+        </td>
+        <td style="font-weight:600;color:${m.tipo==='INGRESO'?'#27AE60':'#E74C3C'}">
+          ${m.tipo==='EGRESO'?'-':''}${fMoneda(m.monto)}
+        </td>
+        <td style="font-size:12px;color:rgba(255,255,255,.4)">${m.usuario||''}</td>
+      </tr>`).join('');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+function renderMetodos() {
+  const ICONOS = {
+    'Efectivo PEN':'💵','Efectivo USD':'💲','Tarjeta Debito':'💳',
+    'Tarjeta Credito':'💳','Yape':'📱','Plin':'📱','Transferencia':'🏦'
+  };
+  document.getElementById('metodosGrid').innerHTML = metodos.map(m => `
+    <div class="met-btn" id="met-${m.id}" onclick="selMetodo(${m.id})">
+      <span class="ico">${ICONOS[m.nombre]||'💰'}</span>${m.nombre}
+    </div>`).join('') || '<div style="grid-column:span 3;color:rgba(255,255,255,.2);text-align:center;padding:12px">Sin metodos configurados</div>';
+}
+
+function selMetodo(id) {
+  metodoSel = id;
+  document.querySelectorAll('.met-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('met-'+id)?.classList.add('selected');
+  const met = metodos.find(m => m.id === id);
+  document.getElementById('inReferencia').placeholder =
+    (met?.esDigital ? 'N° operacion Yape/Plin/Banco (requerido)' : 'Referencia (opcional)');
+}
+
+// ── BUSCAR RESERVA ────────────────────────────────────────
+async function buscarReserva() {
+  const q = document.getElementById('inBuscarRes').value.trim();
+  if (!q) return;
+  try {
+    const res = await api.get('/reservas?q=' + encodeURIComponent(q) + '&estado=CHECKIN&limit=10');
+    if (!res.data || !res.data.length) {
+      const res2 = await api.get('/reservas?q=' + encodeURIComponent(q) + '&limit=5');
+      if (!res2.data || !res2.data.length) {
+        toast('No se encontro la reserva', 'warning'); return;
+      }
+      seleccionarReserva(res2.data[0].id);
+    } else {
+      seleccionarReserva(res.data[0].id);
+    }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function seleccionarReserva(id) {
+  try {
+    const res = await api.get('/reservas/' + id);
+    reservaActual = res.data;
+    document.getElementById('placeholderCobro').style.display = 'none';
+    document.getElementById('panelReserva').style.display     = 'block';
+    renderReservaCard();
+    cargarPagos();
+    if (reservaActual.saldo > 0) {
+      document.getElementById('inMonto').value = reservaActual.saldo.toFixed(2);
+      calcEquivalente();
+    }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function renderReservaCard() {
+  const r = reservaActual;
+  const saldoClass = r.saldo > 0.01 ? 'rc-saldo' : 'rc-saldo ok';
+  document.getElementById('resCard').innerHTML = `
+    <div class="rc-row"><span>Codigo</span>
+      <strong style="font-family:monospace;color:#5DADE2">${r.codigo}</strong></div>
+    <div class="rc-row"><span>Habitacion</span>
+      <strong>${r.habitacion} · ${r.tipo}</strong></div>
+    <div class="rc-row"><span>Huesped</span>
+      <strong>${r.huesped.nombres} ${r.huesped.apellidos}</strong></div>
+    <div class="rc-row"><span>Documento</span>
+      <strong>${r.huesped.documento}</strong></div>
+    <div class="rc-row"><span>Periodo</span>
+      <strong>${fFecha(r.fechaEntrada)} → ${fFecha(r.fechaSalida)} (${r.noches} noches)</strong></div>
+    <div class="rc-row"><span>IGV</span><strong>${r.tipoIGV}</strong></div>
+    <div class="rc-total"><span>Total</span><strong>${fMoneda(r.total)}</strong></div>
+    <div class="rc-row" style="margin-top:6px">
+      <span>Pagado</span>
+      <span style="color:#27AE60;font-weight:600">${fMoneda(r.totalPagado)}</span>
+    </div>
+    <div class="rc-row">
+      <span>Saldo pendiente</span>
+      <span class="${saldoClass}" style="font-size:16px;font-weight:700">${fMoneda(r.saldo)}</span>
+    </div>
+    ${r.estado==='CHECKOUT' ? '<div style="color:#888;font-size:12px;margin-top:6px"><i class="fa fa-info-circle"></i> Reserva ya con checkout</div>' : ''}
+  `;
+}
+
+async function cargarPagos() {
+  if (!reservaActual) return;
+  try {
+    const res = await api.get('/caja/pagos/reserva/' + reservaActual.idReserva);
+    const lista = document.getElementById('pagosLista');
+    if (!res.data || !res.data.length) {
+      lista.innerHTML = '<div style="text-align:center;font-size:12px;color:rgba(255,255,255,.2);padding:12px">Sin pagos registrados</div>';
+      return;
+    }
+    lista.innerHTML = res.data.map(p => `
+      <div class="pago-item ${p.anulado?'anulado':''}">
+        <div>
+          <div class="pi-met">${p.metodo} · ${p.tipo}</div>
+          <div class="pi-nom">
+            ${p.moneda==='PEN' ? fMoneda(p.monto) : '$ '+p.monto.toFixed(2)}
+            ${p.moneda!=='PEN' ? `<small style="color:rgba(255,255,255,.3);font-size:11px"> = ${fMoneda(p.montoBase)}</small>` : ''}
+          </div>
+          <div class="pi-ref">${p.ref||''} · ${fFechaHora(p.fecha)} · ${p.usuario}</div>
+          ${p.anulado ? `<div class="pi-anulado-tag">ANULADO: ${p.motivoAnulacion||''}</div>` : ''}
+        </div>
+        ${!p.anulado ? `<button class="btn btn-danger btn-sm" onclick="anularPago(${p.idPago})">
+          <i class="fa fa-times"></i> Anular
+        </button>` : ''}
+      </div>`).join('');
+  } catch(e) {}
+}
+
+// ── COBRO ─────────────────────────────────────────────────
+function numKey(k) {
+  const inp = document.getElementById('inMonto');
+  if (k === 'del') {
+    inp.value = inp.value.slice(0,-1);
+  } else if (k === '.' && inp.value.includes('.')) {
+    return;
+  } else if (inp.value.length < 10) {
+    inp.value += k;
+  }
+  calcEquivalente();
+}
+
+function calcEquivalente() {
+  const moneda = document.getElementById('selMoneda').value;
+  const monto  = parseFloat(document.getElementById('inMonto').value || 0);
+  const lbl    = document.getElementById('lblEquivalente');
+  if (moneda !== 'PEN' && tipoCambios[moneda]) {
+    const base = monto * tipoCambios[moneda].tasa;
+    lbl.textContent = `Equivalente: S/ ${base.toFixed(2)} (TC: ${tipoCambios[moneda].tasa})`;
+  } else {
+    lbl.textContent = '';
+  }
+}
+
+function onMonedaChange() {
+  calcEquivalente();
+  const moneda = document.getElementById('selMoneda').value;
+  metodos.forEach(m => {
+    const btn = document.getElementById('met-'+m.id);
+    if (!btn) return;
+    if (moneda !== 'PEN' && !m.aceptaExtranjera) {
+      btn.style.opacity = '.3';
+      btn.style.pointerEvents = 'none';
+      if (metodoSel === m.id) { metodoSel = null; btn.classList.remove('selected'); }
+    } else {
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = '';
+    }
+  });
+}
+
+async function registrarCobro() {
+  if (!reservaActual)  { toast('Seleccione una reserva','warning'); return; }
+  if (!metodoSel)      { toast('Seleccione metodo de pago','warning'); return; }
+  const monto = parseFloat(document.getElementById('inMonto').value || 0);
+  if (monto <= 0)      { toast('Ingrese un monto valido','warning'); return; }
+  const moneda = document.getElementById('selMoneda').value;
+  const ref    = document.getElementById('inReferencia').value.trim();
+  const met    = metodos.find(m => m.id === metodoSel);
+  if (met?.esDigital && !ref) { toast('Ingrese el numero de operacion','warning'); return; }
+
+  try {
+    await api.post('/caja/pagos', {
+      idTurno:      turno?.idTurno || 0,
+      idReserva:    reservaActual.idReserva,
+      idMetodoPago: metodoSel,
+      tipoPago:     'RESERVA',
+      moneda,
+      monto,
+      referencia:   ref
+    });
+    toast('Cobro registrado: ' + (moneda==='PEN' ? fMoneda(monto) : '$ '+monto.toFixed(2)), 'success');
+    await seleccionarReserva(reservaActual.idReserva);
+    document.getElementById('inMonto').value = '';
+    document.getElementById('inReferencia').value = '';
+    document.getElementById('lblEquivalente').textContent = '';
+    cargarTurno();
+    cargarResumenDia();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function anularPago(id) {
+  const motivo = prompt('Motivo de anulacion:');
+  if (motivo === null) return;
+  try {
+    await api.post('/caja/pagos/'+id+'/anular', { motivo });
+    toast('Pago anulado', 'success');
+    await seleccionarReserva(reservaActual.idReserva);
+    cargarTurno();
+    cargarResumenDia();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function limpiarPanel() {
+  reservaActual = null;
+  document.getElementById('panelReserva').style.display   = 'none';
+  document.getElementById('placeholderCobro').style.display = 'block';
+  document.getElementById('inBuscarRes').value = '';
+  document.getElementById('inMonto').value = '';
+}
+
+// ── MOVIMIENTO MANUAL ─────────────────────────────────────
+function abrirModalMovimiento() {
+  if (!turno) { toast('Debe tener un turno abierto', 'warning'); return; }
+  document.getElementById('modalMovimiento').classList.add('open');
+}
+
+async function registrarMovimiento() {
+  const tipo     = document.getElementById('mmTipo').value;
+  const concepto = document.getElementById('mmConcepto').value.trim();
+  const monto    = parseFloat(document.getElementById('mmMonto').value || 0);
+  const obs      = document.getElementById('mmObs').value;
+  if (!concepto) { toast('Ingrese un concepto', 'warning'); return; }
+  if (monto <= 0) { toast('Ingrese un monto valido', 'warning'); return; }
+  try {
+    await api.post('/caja/movimiento', {
+      idTurno: turno?.idTurno || 0,
+      tipo, concepto, monto,
+      observaciones: obs
+    });
+    toast('Movimiento registrado', 'success');
+    cerrarModal('modalMovimiento');
+    cargarMovimientos();
+    cargarTurno();
+    cargarResumenDia();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── TURNOS ────────────────────────────────────────────────
+function modalAbrirTurno() {
+  document.getElementById('modalAbrir').classList.add('open');
+}
+
+async function abrirTurno() {
+  const idCaja = parseInt(document.getElementById('maCaja').value);
+  const saldo  = parseFloat(document.getElementById('maSaldo').value || 0);
+  try {
+    await api.post('/caja/turno/abrir', { idCaja, saldoInicial: saldo });
+    cerrarModal('modalAbrir');
+    toast('Turno abierto correctamente', 'success');
+    await cargarTurno();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function modalCerrarTurno() {
+  if (!turno) return;
+  // Generar arqueo de billetes
+  const BILLETES = [200,100,50,20,10,5,2,1,0.5,0.2,0.1];
+  document.getElementById('arqueoGrid').innerHTML = BILLETES.map(b => `
+    <div class="arq-item">
+      <div class="denom">S/ ${b}</div>
+      <input type="number" min="0" value="0" id="arq-${String(b).replace('.','_')}"
+             oninput="calcArqueo()" placeholder="0">
+    </div>`).join('');
+
+  try {
+    const res = await api.get('/caja/turno/' + turno.idTurno);
+    const t = res.data;
+    const saldoSist = (t.saldoInicial||0) + (t.totalCobrado||0);
+    document.getElementById('mcSaldoSist').textContent = fMoneda(saldoSist);
+    document.getElementById('cierreResumen').innerHTML = `
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="color:rgba(255,255,255,.5)">Saldo inicial</span>
+        <strong>${fMoneda(t.saldoInicial)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="color:rgba(255,255,255,.5)">Total cobrado</span>
+        <strong style="color:#27AE60">${fMoneda(t.totalCobrado)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-weight:600;
+        border-top:1px solid rgba(255,255,255,.08);padding-top:6px">
+        <span>Saldo sistema</span><strong>${fMoneda(saldoSist)}</strong>
+      </div>
+    `;
+  } catch(e) { toast(e.message,'error'); }
+  document.getElementById('modalCerrar').classList.add('open');
+}
+
+function calcArqueo() {
+  const BILLETES = [200,100,50,20,10,5,2,1,0.5,0.2,0.1];
+  let total = 0;
+  BILLETES.forEach(b => {
+    const id  = 'arq-' + String(b).replace('.','_');
+    const qty = parseInt(document.getElementById(id)?.value || 0);
+    total += b * qty;
+  });
+  document.getElementById('mcSaldoReal').value = total.toFixed(2);
+  calcDiferencia();
+}
+
+function calcDiferencia() {
+  const real = parseFloat(document.getElementById('mcSaldoReal').value || 0);
+  const txt  = document.getElementById('mcSaldoSist').textContent.replace('S/ ','').replace(/,/g,'');
+  const sist = parseFloat(txt || 0);
+  const dif  = real - sist;
+  const el   = document.getElementById('mcDiferencia');
+  el.textContent = fMoneda(Math.abs(dif)) + (dif < 0 ? ' FALTANTE' : dif > 0 ? ' SOBRANTE' : ' EXACTO');
+  el.style.color = dif < 0 ? '#E74C3C' : dif > 0 ? '#F39C12' : '#27AE60';
+}
+
+async function cerrarTurno() {
+  const real = parseFloat(document.getElementById('mcSaldoReal').value || 0);
+  const obs  = document.getElementById('mcObs').value;
+  try {
+    const res = await api.post('/caja/turno/'+turno.idTurno+'/cerrar',
+      { saldoFinalReal: real, observaciones: obs });
+    cerrarModal('modalCerrar');
+    const d = res.data;
+    const msg = `Turno cerrado. Diferencia: ${fMoneda(Math.abs(d.diferencia))} ${d.diferencia<0?'FALTANTE':d.diferencia>0?'SOBRANTE':'EXACTO'}`;
+    toast(msg, d.ok ? 'success' : 'warning');
+    turno = null;
+    await cargarTurno();
+    cargarResumenDia();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── TIPO CAMBIO ───────────────────────────────────────────
+async function editarTC(codigo, tasa) {
+  const nueva = prompt(`Tipo de cambio ${codigo} → PEN:`, tasa);
+  if (!nueva || isNaN(parseFloat(nueva))) return;
+  try {
+    await api.post('/caja/tipo-cambio', { codigo, tasa: parseFloat(nueva) });
+    toast('Tipo de cambio actualizado', 'success');
+    cargarTipoCambio();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── INICIO ────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

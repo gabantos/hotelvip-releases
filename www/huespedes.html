@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP &mdash; Huespedes</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* Layout de 2 columnas dentro de main-content */
+    .main-content { padding: 0; overflow: hidden; }
+
+    .hsp-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* Panel lista izquierdo */
+    .hsp-lista-panel {
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .hsp-lista-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .hsp-lista-title {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .hsp-lista-title h3 { font-size: 14px; font-weight: 600; }
+    .hsp-lista-title .count {
+      font-size: 11px; color: var(--text-faint);
+      background: rgba(255,255,255,.05);
+      padding: 2px 8px; border-radius: 20px;
+    }
+    .hsp-items { flex: 1; overflow-y: auto; }
+
+    /* Items de lista */
+    .hsp-item {
+      padding: 12px 16px; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      transition: background .12s;
+    }
+    .hsp-item:hover { background: rgba(255,255,255,.03); }
+    .hsp-item.selected {
+      background: rgba(59,130,246,.08);
+      border-left: 3px solid var(--accent);
+    }
+    .hsp-item-nom { font-size: 13px; font-weight: 600; color: var(--text); }
+    .hsp-item-det { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .hsp-item-badges { display: flex; gap: 4px; margin-top: 5px; flex-wrap: wrap; }
+    .hsp-badge {
+      font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 600;
+    }
+    .b-ESTANDAR  { background: rgba(255,255,255,.07); color: var(--text-muted); }
+    .b-PLATA     { background: rgba(189,195,199,.1);  color: #bdc3c7; }
+    .b-ORO       { background: rgba(245,158,11,.12);  color: #f59e0b; }
+    .b-PLATINO   { background: rgba(139,92,246,.12);  color: #8b5cf6; }
+    .b-igv       { background: rgba(59,130,246,.1);   color: var(--accent); }
+    .b-blacklist { background: rgba(239,68,68,.12);   color: var(--red); }
+    .b-estancias { background: rgba(16,185,129,.1);   color: var(--green); }
+
+    /* Panel detalle derecho */
+    .hsp-detalle-panel {
+      overflow-y: auto;
+      padding: 24px;
+      background: var(--bg-body);
+    }
+
+    /* Placeholder */
+    .hsp-placeholder {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100%; color: var(--text-faint); gap: 10px;
+    }
+    .hsp-placeholder i { font-size: 48px; opacity: .15; }
+    .hsp-placeholder p { font-size: 13px; }
+
+    /* Ficha */
+    .ficha-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .ficha-left { display: flex; align-items: flex-start; gap: 14px; }
+    .ficha-avatar {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--accent-light); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 700; flex-shrink: 0;
+      border: 2px solid var(--border-focus);
+    }
+    .ficha-nombre { font-size: 20px; font-weight: 700; }
+    .ficha-doc { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    .ficha-badges { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+
+    /* KPIs mini dentro de ficha */
+    .kpi-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .kpi-mini {
+      flex: 1; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 10px 12px; text-align: center;
+    }
+    .kpi-mini .v { font-size: 20px; font-weight: 700; color: var(--text); }
+    .kpi-mini .l { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+
+    /* Info grid dentro de card */
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .info-item label {
+      font-size: 10px; font-weight: 600; color: var(--text-faint);
+      text-transform: uppercase; letter-spacing: .05em;
+      display: block; margin-bottom: 2px;
+    }
+    .info-item span { font-size: 13px; color: var(--text); }
+
+    /* Historial items */
+    .historial-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .historial-item:last-child { border-bottom: none; }
+    .hist-codigo { font-size: 11px; color: var(--accent); font-family: monospace; }
+    .hist-hab { font-size: 13px; font-weight: 600; margin-top: 2px; }
+    .hist-fechas { font-size: 11px; color: var(--text-faint); }
+    .hist-total { font-size: 13px; font-weight: 600; text-align: right; }
+    .hist-noches { font-size: 11px; color: var(--text-faint); }
+    .stars { color: var(--yellow); font-size: 11px; }
+
+    /* Preferencias CRM */
+    .pref-item {
+      display: flex; gap: 8px; align-items: flex-start;
+      padding: 7px 0; border-bottom: 1px solid var(--border);
+    }
+    .pref-item:last-child { border-bottom: none; }
+    .pref-cat {
+      font-size: 10px; padding: 2px 7px; border-radius: 10px;
+      background: rgba(255,255,255,.06); color: var(--text-muted);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .pref-desc { font-size: 12px; color: var(--text); }
+
+    /* Notas */
+    .notas-box {
+      margin-top: 10px; padding: 8px 10px;
+      background: var(--bg-body); border-radius: var(--radius-sm);
+      font-size: 12px; color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    /* Modal form */
+    .modal .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+    .input-btn-group { display: flex; gap: 6px; }
+    .input-btn-group .form-control { flex: 1; }
+
+    @media (max-width: 900px) {
+      .hsp-layout { grid-template-columns: 1fr; }
+      .hsp-lista-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-layout">
+  <!-- sidebar inyectado por layout.js -->
+  <div class="page-wrapper">
+    <!-- header inyectado por layout.js -->
+    <main class="main-content">
+
+      <div class="hsp-layout">
+
+        <!-- PANEL LISTA -->
+        <div class="hsp-lista-panel">
+          <div class="hsp-lista-header">
+            <div class="hsp-lista-title">
+              <h3><i class="fa-solid fa-users" style="color:var(--accent);margin-right:6px"></i>Huespedes</h3>
+              <span class="count" id="lblTotal">0</span>
+            </div>
+            <div class="search-box" style="width:100%">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="searchInput"
+                     placeholder="Nombre, DNI, email..."
+                     oninput="buscarLista()"
+                     style="width:100%;min-width:unset">
+            </div>
+          </div>
+          <div class="hsp-items" id="listaItems">
+            <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Cargando...</p></div>
+          </div>
+        </div>
+
+        <!-- PANEL DETALLE -->
+        <div class="hsp-detalle-panel" id="panelDetalle">
+          <div class="hsp-placeholder">
+            <i class="fa-solid fa-user"></i>
+            <p>Seleccione un huesped para ver su ficha</p>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL NUEVO / EDITAR -->
+<div class="modal-overlay" id="modalForm">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="modalTitulo">Nuevo Huesped</h3>
+      <button class="btn-close" onclick="cerrarModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-row cols-2 mb-16">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Tipo Documento</label>
+          <select id="fTipoDoc" class="form-control" onchange="onTipoChange()">
+            <option value="DNI">DNI</option>
+            <option value="PASAPORTE">Pasaporte</option>
+            <option value="CE">Carnet Extranjeria</option>
+            <option value="RUC">RUC</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Numero Documento</label>
+          <div class="input-btn-group">
+            <input type="text" id="fNumDoc" class="form-control" maxlength="15" placeholder="Nro. documento">
+            <button class="btn btn-primary" onclick="autoFill()" id="btnAutoFill" title="Buscar en RENIEC">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row cols-2 mb-16">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Nombres</label>
+          <input id="fNombres" class="form-control" placeholder="Nombres">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Apellidos</label>
+          <input id="fApellidos" class="form-control" placeholder="Apellidos">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Razon Social (si es empresa)</label>
+        <input id="fRazonSocial" class="form-control" placeholder="Solo si es empresa / RUC">
+      </div>
+
+      <div class="form-row cols-2 mb-16">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Email</label>
+          <input type="email" id="fEmail" class="form-control" placeholder="correo@email.com">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>WhatsApp</label>
+          <input id="fWA" class="form-control" placeholder="984000000">
+        </div>
+      </div>
+
+      <div class="form-row cols-2 mb-16">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Pais</label>
+          <input id="fPais" class="form-control" value="PERU" placeholder="PERU">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Tipo IGV</label>
+          <select id="fTipoIGV" class="form-control">
+            <option value="GENERAL">General (18%)</option>
+            <option value="NACIONAL">Nacional (10.5%)</option>
+            <option value="EXONERADO">Exonerado (0%) &mdash; Pasaporte</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0">
+        <label>Notas internas</label>
+        <input id="fNotas" class="form-control" placeholder="Preferencias, observaciones...">
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarHuesped()">
+        <i class="fa-solid fa-floppy-disk"></i> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script>
+initLayout('huespedes');
+
+// Boton "Nuevo" en el header del layout no existe aun — se agrega aqui dinamicamente
+(function() {
+  const headerRight = document.querySelector('.header-right');
+  if (headerRight) {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-primary btn-sm';
+    btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Nuevo Huesped';
+    btn.onclick = abrirNuevo;
+    headerRight.insertAdjacentElement('afterbegin', btn);
+  }
+})();
+
+let hspEditId  = null;
+let searchTimer = null;
+
+/* ── Lista ── */
+async function buscarLista() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    const q = document.getElementById('searchInput').value.trim();
+    try {
+      const res = await api.get('/huespedes?q=' + encodeURIComponent(q) + '&limit=80');
+      document.getElementById('lblTotal').textContent = res.total || res.data?.length || 0;
+      renderLista(res.data || []);
+    } catch(e) {
+      toast(e.message, 'error');
+    }
+  }, 280);
+}
+
+function renderLista(items) {
+  const cont = document.getElementById('listaItems');
+  if (!items.length) {
+    cont.innerHTML = `<div class="empty-state"><i class="fa-solid fa-user-slash"></i><p>Sin resultados</p></div>`;
+    return;
+  }
+  const IGV_LABEL = { GENERAL:'18%', NACIONAL:'10.5%', EXONERADO:'0%' };
+  cont.innerHTML = items.map(h => `
+    <div class="hsp-item" onclick="verFicha(${h.idHuesped})" id="li-${h.idHuesped}">
+      <div class="hsp-item-nom">${h.nombre}</div>
+      <div class="hsp-item-det">${h.documento || ''} &nbsp;&middot;&nbsp; ${h.pais || ''}</div>
+      <div class="hsp-item-badges">
+        <span class="hsp-badge b-${h.fidelidad}">${h.fidelidad}</span>
+        <span class="hsp-badge b-igv">IGV ${IGV_LABEL[h.tipoIGV] || h.tipoIGV || ''}</span>
+        ${h.estancias > 0 ? `<span class="hsp-badge b-estancias">${h.estancias} estancias</span>` : ''}
+        ${h.blacklist  ? `<span class="hsp-badge b-blacklist">BLACKLIST</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+/* ── Ficha ── */
+async function verFicha(id) {
+  document.querySelectorAll('.hsp-item').forEach(i => i.classList.remove('selected'));
+  document.getElementById('li-' + id)?.classList.add('selected');
+
+  document.getElementById('panelDetalle').innerHTML =
+    `<div class="hsp-placeholder"><i class="fa-solid fa-spinner fa-spin"></i><p>Cargando ficha...</p></div>`;
+
+  try {
+    const res = await api.get('/huespedes/' + id);
+    const h = res.data;
+
+    const inicial = ((h.nombres || h.razonSocial || '?')[0]).toUpperCase();
+
+    const IGV_COLOR = { GENERAL: 'var(--red)', NACIONAL: 'var(--yellow)', EXONERADO: 'var(--green)' };
+    const FID_COLOR = { ESTANDAR: 'var(--text-muted)', PLATA: '#bdc3c7', ORO: 'var(--yellow)', PLATINO: 'var(--purple)' };
+
+    const totalEstancias = h.historial?.length || 0;
+    const totalGastado   = h.historial?.reduce((s, e) => s + (e.total || 0), 0) || 0;
+
+    const igvColor = IGV_COLOR[h.tipoIGV] || 'var(--text-muted)';
+    const fidColor = FID_COLOR[h.fidelidad] || 'var(--text-muted)';
+
+    document.getElementById('panelDetalle').innerHTML = `
+
+      <div class="ficha-header">
+        <div class="ficha-left">
+          <div class="ficha-avatar">${inicial}</div>
+          <div>
+            <div class="ficha-nombre">${h.nombres || ''} ${h.apellidos || ''} ${h.razonSocial || ''}</div>
+            <div class="ficha-doc">${h.tipoDoc || ''} ${h.numeroDoc || ''} &nbsp;&middot;&nbsp; ${h.pais || ''}</div>
+            <div class="ficha-badges">
+              <span class="badge" style="background:${fidColor}18;color:${fidColor};border:1px solid ${fidColor}33">
+                <i class="fa-solid fa-star" style="font-size:9px"></i>${h.fidelidad}
+              </span>
+              <span class="badge" style="background:${igvColor}18;color:${igvColor};border:1px solid ${igvColor}33">
+                IGV ${h.tipoIGV}
+              </span>
+              ${h.blacklist ? `<span class="badge badge-red"><i class="fa-solid fa-ban" style="font-size:9px"></i>BLACKLIST</span>` : ''}
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="abrirEditar(${h.idHuesped})">
+          <i class="fa-solid fa-pen"></i> Editar
+        </button>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-mini">
+          <div class="v">${totalEstancias}</div>
+          <div class="l">Estancias</div>
+        </div>
+        <div class="kpi-mini">
+          <div class="v">${fMoneda(totalGastado)}</div>
+          <div class="l">Total gastado</div>
+        </div>
+        <div class="kpi-mini">
+          <div class="v">${h.puntos || 0}</div>
+          <div class="l">Puntos</div>
+        </div>
+      </div>
+
+      <div class="card mb-16">
+        <div class="card-title"><i class="fa-solid fa-address-card"></i>Informacion de Contacto</div>
+        <div class="info-grid">
+          <div class="info-item"><label>Email</label><span>${h.email || '&mdash;'}</span></div>
+          <div class="info-item"><label>Telefono</label><span>${h.telefono || '&mdash;'}</span></div>
+          <div class="info-item"><label>WhatsApp</label>
+            <span style="color:#25D366">${h.whatsapp || '&mdash;'}</span></div>
+          <div class="info-item"><label>Idioma</label><span>${h.idioma || 'ES'}</span></div>
+          <div class="info-item"><label>Nacionalidad</label><span>${h.nacionalidad || '&mdash;'}</span></div>
+          <div class="info-item"><label>Direccion</label><span>${h.direccion || '&mdash;'}</span></div>
+        </div>
+        ${h.notas ? `<div class="notas-box"><i class="fa-solid fa-note-sticky" style="margin-right:5px;opacity:.5"></i>${h.notas}</div>` : ''}
+      </div>
+
+      ${h.preferencias?.length ? `
+      <div class="card mb-16">
+        <div class="card-title"><i class="fa-solid fa-heart"></i>Preferencias CRM</div>
+        ${h.preferencias.map(p => `
+          <div class="pref-item">
+            <span class="pref-cat">${p.categoria || 'GENERAL'}</span>
+            <span class="pref-desc">${p.descripcion}</span>
+          </div>`).join('')}
+      </div>` : ''}
+
+      ${h.historial?.length ? `
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i>Historial de Estancias</div>
+        ${h.historial.map(e => `
+          <div class="historial-item">
+            <div>
+              <div class="hist-codigo">${e.codigo}</div>
+              <div class="hist-hab">Hab. ${e.habitacion}</div>
+              <div class="hist-fechas">${fFecha(e.entrada)} &rarr; ${fFecha(e.salida)}</div>
+            </div>
+            <div>
+              <div class="hist-total">${fMoneda(e.total)}</div>
+              <div class="hist-noches">${e.noches} noches</div>
+              ${e.calificacion ? `<div class="stars">${'★'.repeat(e.calificacion)}</div>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>` : ''}
+    `;
+  } catch(e) {
+    document.getElementById('panelDetalle').innerHTML =
+      `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation" style="color:var(--red)"></i><p style="color:var(--red)">${e.message}</p></div>`;
+  }
+}
+
+/* ── Modal ── */
+function abrirNuevo() {
+  hspEditId = null;
+  document.getElementById('modalTitulo').textContent = 'Nuevo Huesped';
+  ['fNumDoc','fNombres','fApellidos','fRazonSocial','fEmail','fWA','fNotas'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('fTipoDoc').value  = 'DNI';
+  document.getElementById('fPais').value     = 'PERU';
+  document.getElementById('fTipoIGV').value  = 'NACIONAL';
+  document.getElementById('modalForm').classList.add('open');
+  setTimeout(() => document.getElementById('fNumDoc').focus(), 80);
+}
+
+async function abrirEditar(id) {
+  hspEditId = id;
+  document.getElementById('modalTitulo').textContent = 'Editar Huesped';
+  try {
+    const res = await api.get('/huespedes/' + id);
+    const h = res.data;
+    document.getElementById('fTipoDoc').value     = h.tipoDoc      || 'DNI';
+    document.getElementById('fNumDoc').value      = h.numeroDoc    || '';
+    document.getElementById('fNombres').value     = h.nombres      || '';
+    document.getElementById('fApellidos').value   = h.apellidos    || '';
+    document.getElementById('fRazonSocial').value = h.razonSocial  || '';
+    document.getElementById('fEmail').value       = h.email        || '';
+    document.getElementById('fWA').value          = h.whatsapp     || '';
+    document.getElementById('fPais').value        = h.pais         || 'PERU';
+    document.getElementById('fTipoIGV').value     = h.tipoIGV      || 'GENERAL';
+    document.getElementById('fNotas').value       = h.notas        || '';
+    document.getElementById('modalForm').classList.add('open');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function cerrarModal() {
+  document.getElementById('modalForm').classList.remove('open');
+}
+// Cerrar al click fuera
+document.getElementById('modalForm').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModal();
+});
+
+function onTipoChange() {
+  const tipo = document.getElementById('fTipoDoc').value;
+  if      (tipo === 'PASAPORTE') document.getElementById('fTipoIGV').value = 'EXONERADO';
+  else if (tipo === 'DNI')       document.getElementById('fTipoIGV').value = 'NACIONAL';
+  else                           document.getElementById('fTipoIGV').value = 'GENERAL';
+}
+
+async function autoFill() {
+  const tipo = document.getElementById('fTipoDoc').value;
+  const num  = document.getElementById('fNumDoc').value.trim();
+  if (tipo !== 'DNI' || num.length !== 8) {
+    toast('Solo funciona con DNI de 8 digitos', 'warning');
+    return;
+  }
+  const btn = document.getElementById('btnAutoFill');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  try {
+    const res = await api.get('/huespedes/reniec?dni=' + num);
+    const d = res.data;
+    if (d.nombres)   document.getElementById('fNombres').value   = d.nombres;
+    if (d.apellidos) document.getElementById('fApellidos').value = d.apellidos;
+    document.getElementById('fTipoIGV').value = 'NACIONAL';
+    document.getElementById('fPais').value = 'PERU';
+    toast('Datos cargados desde ' + (d.fuente || 'RENIEC'), 'success');
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
+  }
+}
+
+async function guardarHuesped() {
+  const payload = {
+    tipoDoc:     document.getElementById('fTipoDoc').value,
+    numeroDoc:   document.getElementById('fNumDoc').value.trim(),
+    nombres:     document.getElementById('fNombres').value.trim(),
+    apellidos:   document.getElementById('fApellidos').value.trim(),
+    razonSocial: document.getElementById('fRazonSocial').value.trim(),
+    email:       document.getElementById('fEmail').value.trim(),
+    whatsapp:    document.getElementById('fWA').value.trim(),
+    pais:        document.getElementById('fPais').value.trim() || 'PERU',
+    tipoIGV:     document.getElementById('fTipoIGV').value,
+    notas:       document.getElementById('fNotas').value.trim(),
+  };
+
+  if (!payload.nombres && !payload.razonSocial) {
+    toast('Ingrese nombres o razon social', 'warning');
+    return;
+  }
+
+  try {
+    if (hspEditId) {
+      await api.put('/huespedes/' + hspEditId, payload);
+      toast('Huesped actualizado', 'success');
+    } else {
+      const res = await api.post('/huespedes', payload);
+      toast(res.data?.existe ? 'Huesped ya existe en el sistema' : 'Huesped creado', 'success');
+    }
+    cerrarModal();
+    buscarLista();
+    if (hspEditId) verFicha(hspEditId);
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+}
+
+/* ── Init ── */
+buscarLista();
+</script>
+</body>
+</html>

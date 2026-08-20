@@ -1,0 +1,86 @@
+; ==============================================================
+; HotelVip_Server.ini.ejemplo  -  PLANTILLA para tenants nuevos
+;
+; Patron multitenant SistemasVIP:
+;   - CENTRAL (la demo)  = HotelVip\Aplicacion   BD hotel_001, :9006
+;   - TENANT  (cliente)  = HotelVip-<Cliente>     BD propia, su puerto
+;
+; El central NO se llama "demo": al no tener sufijo ya sabemos que es
+; la central de codigo. Los clientes van con guion: HotelVip-Cliente.
+;
+; Este archivo se versiona como referencia. El HotelVip_Server.ini real
+; esta en .gitignore (tiene claves) y es local de cada tenant.
+; nuevo-tenant.bat genera uno automaticamente al crear un tenant.
+; ==============================================================
+
+[Database]
+Servidor=127.0.0.1
+Puerto=3306
+BaseDatos=hotelvip_cliente   ; <-- una BD por tenant: hotelvip_<cliente>
+Usuario=root
+Clave=CAMBIAR_CLAVE
+AuthWindows=0
+MaxPool=20
+
+[API]
+Puerto=9007                  ; <-- puerto unico por tenant (central=9006)
+Host=0.0.0.0
+SecretKey=HotVip-SecretKey-2026-SistemasVIP
+TokenExpiraHoras=12
+NombrePC=
+
+[Empresa]
+RUC=
+RazonSocial=
+NombreComercial=NOMBRE DEL HOTEL CLIENTE
+Direccion=
+Ubigeo=080101
+Departamento=CUSCO
+Provincia=CUSCO
+Distrito=CUSCO
+Telefono=
+Email=
+
+[Pro7]
+URL=https://facturacion.sistemasvip.com
+Email=
+Password=
+Activo=0
+ModoProduccion=0
+SerieFactura=F001
+SerieBoleta=B001
+SerieNCFactura=FC01
+SerieNCBoleta=BC01
+
+[Impresion]
+AnchoTicket=40
+ImpresoraTicket=
+ImpresoraReportes=
+AgenteNodePuerto=3001
+AgenteNodeActivo=1
+
+[Modulos]
+Reservas=1
+Housekeeping=1
+Facturacion=1
+Canales=1
+Servicios=1
+Reportes=1
+Notificaciones=1
+Sincronizacion=1
+
+; Sync cloud->local (Booking/Airbnb/motor propio -> recepcion local).
+; Activar (Habilitado=1 + Token) recien cuando el VPS PHP este desplegado.
+[Sync]
+Habilitado=0
+URL=https://hotelvip.sistemasvip.com/api/sync
+Token=
+IntervaloSeg=30
+VersionLocal=2.0
+InstanciaNom=ClienteHotel
+MachineId=
+
+[Rutas]
+Web=.\www\
+Logs=.\Logs
+Backups=.\Backups

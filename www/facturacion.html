@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP — Facturacion</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* Indicadores de estado SUNAT */
+    .pulse-dot {
+      display: inline-block; width: 8px; height: 8px;
+      border-radius: 50%; margin-right: 4px; flex-shrink: 0;
+    }
+    .pulse-dot.green { background: var(--green); animation: pulse-green 2s infinite; }
+    .pulse-dot.red   { background: var(--red); }
+    .pulse-dot.yellow{ background: var(--yellow); animation: pulse-yellow 2s infinite; }
+    @keyframes pulse-green {
+      0%,100%{ box-shadow: 0 0 0 0 rgba(16,185,129,.5); }
+      50%     { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+    }
+    @keyframes pulse-yellow {
+      0%,100%{ box-shadow: 0 0 0 0 rgba(245,158,11,.5); }
+      50%     { box-shadow: 0 0 0 5px rgba(245,158,11,0); }
+    }
+
+    /* Items en modal emision */
+    .items-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .items-table th {
+      font-size: 11px; color: var(--text-faint); text-transform: uppercase;
+      letter-spacing: .05em; padding: 6px 8px; text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .items-table td { padding: 6px 8px; vertical-align: middle; }
+    .items-table input {
+      width: 100%; padding: 5px 8px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text); font-size: 12px; outline: none;
+    }
+    .items-table input:focus { border-color: var(--border-focus); }
+    .btn-icon {
+      background: none; border: none; color: var(--text-muted);
+      cursor: pointer; padding: 4px 6px; border-radius: 4px;
+      transition: var(--transition);
+    }
+    .btn-icon:hover { color: var(--red); background: var(--red-light); }
+
+    /* Resumen totales */
+    .totales-box {
+      background: var(--bg-body); border-radius: var(--radius-sm);
+      padding: 12px 14px; margin-top: 12px;
+    }
+    .totales-row {
+      display: flex; justify-content: space-between;
+      font-size: 13px; padding: 3px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .totales-row:last-child {
+      border-bottom: none; font-weight: 700; font-size: 15px;
+      margin-top: 6px; padding-top: 8px;
+    }
+    .totales-row .label { color: var(--text-muted); }
+
+    /* Accion comprobante */
+    .btn-action {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 4px; font-size: 11px;
+      font-weight: 600; border: none; cursor: pointer; transition: var(--transition);
+    }
+  </style>
+</head>
+<body>
+<div id="app-layout">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <!-- PAGE HEADER -->
+      <div class="page-header">
+        <h1><i class="fa-solid fa-file-invoice"></i> Facturacion Electronica</h1>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost" onclick="abrirEmitir('BOLETA')">
+            <i class="fa-solid fa-receipt"></i> Nueva Boleta
+          </button>
+          <button class="btn btn-primary" onclick="abrirEmitir('FACTURA')">
+            <i class="fa-solid fa-file-invoice-dollar"></i> Nueva Factura
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--accent-light);color:var(--accent)">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+          </div>
+          <div class="kpi-label">Facturas Hoy</div>
+          <div class="kpi-value accent" id="kFacturasHoy">—</div>
+          <div class="kpi-sub">comprobantes tipo factura</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--green-light);color:var(--green)">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <div class="kpi-label">Boletas Hoy</div>
+          <div class="kpi-value green" id="kBoletasHoy">—</div>
+          <div class="kpi-sub">comprobantes tipo boleta</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--yellow-light);color:var(--yellow)">
+            <i class="fa-solid fa-sack-dollar"></i>
+          </div>
+          <div class="kpi-label">Total Facturado Hoy</div>
+          <div class="kpi-value yellow" id="kTotalHoy">—</div>
+          <div class="kpi-sub">monto bruto emitido</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--purple-light);color:var(--purple)">
+            <i class="fa-solid fa-file-circle-minus"></i>
+          </div>
+          <div class="kpi-label">Notas de Credito</div>
+          <div class="kpi-value" style="color:var(--purple)" id="kNotasCredito">—</div>
+          <div class="kpi-sub">emitidas este mes</div>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('comprobantes', this)">
+          <i class="fa-solid fa-list"></i> Comprobantes
+        </button>
+        <button class="tab-btn" onclick="switchTab('pendientes', this)">
+          <i class="fa-solid fa-clock"></i> Pendientes
+          <span id="badgePendientes" style="display:none;background:var(--yellow-light);
+            color:var(--yellow);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:4px"></span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('notas', this)">
+          <i class="fa-solid fa-file-circle-minus"></i> Notas de Credito
+        </button>
+      </div>
+
+      <!-- TAB: COMPROBANTES -->
+      <div id="tab-comprobantes" class="tab-panel active">
+        <!-- Filtros -->
+        <div class="flex gap-12 mb-16" style="flex-wrap:wrap;align-items:center">
+          <div class="search-box">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" id="fQ" placeholder="Serie, numero, cliente..."
+                   oninput="cargarComprobantes()">
+          </div>
+          <select class="form-control" id="fEstado" onchange="cargarComprobantes()"
+                  style="width:160px">
+            <option value="">Todos los estados</option>
+            <option value="EMITIDA">Emitida</option>
+            <option value="ENVIADA_SUNAT">Enviada SUNAT</option>
+            <option value="ACEPTADA">Aceptada</option>
+            <option value="RECHAZADA">Rechazada</option>
+            <option value="ANULADA">Anulada</option>
+          </select>
+          <select class="form-control" id="fTipo" onchange="cargarComprobantes()"
+                  style="width:140px">
+            <option value="">Todos los tipos</option>
+            <option value="FACTURA">Factura</option>
+            <option value="BOLETA">Boleta</option>
+          </select>
+          <input type="month" class="form-control" id="fMes" onchange="cargarComprobantes()"
+                 style="width:150px">
+          <button class="btn btn-ghost btn-sm" onclick="init()">
+            <i class="fa-solid fa-rotate"></i> Actualizar
+          </button>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Serie - Numero</th>
+                <th>Tipo</th>
+                <th>Cliente / RUC-DNI</th>
+                <th>Fecha</th>
+                <th style="text-align:right">Base Imp.</th>
+                <th style="text-align:right">IGV</th>
+                <th style="text-align:right">Total</th>
+                <th>Estado</th>
+                <th style="text-align:center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbComprobantes">
+              <tr><td colspan="9" class="empty-state">
+                <i class="fa-solid fa-spinner fa-spin"></i><p>Cargando...</p>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: PENDIENTES -->
+      <div id="tab-pendientes" class="tab-panel">
+        <div class="flex gap-12 mb-16" style="align-items:center">
+          <p class="text-muted text-sm">
+            Reservas con cobro completado sin comprobante de pago emitido.
+          </p>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Reserva</th>
+                <th>Huesped</th>
+                <th>Habitacion</th>
+                <th>Check-Out</th>
+                <th style="text-align:right">Total</th>
+                <th style="text-align:right">Saldo</th>
+                <th style="text-align:center">Accion</th>
+              </tr>
+            </thead>
+            <tbody id="tbPendientes">
+              <tr><td colspan="7" class="empty-state">
+                <i class="fa-solid fa-spinner fa-spin"></i><p>Cargando...</p>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: NOTAS DE CREDITO -->
+      <div id="tab-notas" class="tab-panel">
+        <div class="flex gap-12 mb-16" style="flex-wrap:wrap;align-items:center">
+          <div class="search-box">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" id="fQNC" placeholder="Serie, numero, referencia..."
+                   oninput="cargarNotas()">
+          </div>
+          <input type="month" class="form-control" id="fMesNC" onchange="cargarNotas()"
+                 style="width:150px">
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Serie - Numero</th>
+                <th>Referido a</th>
+                <th>Motivo</th>
+                <th>Fecha</th>
+                <th style="text-align:right">Total</th>
+                <th>Estado</th>
+                <th style="text-align:center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbNotas">
+              <tr><td colspan="7" class="empty-state">
+                <i class="fa-solid fa-spinner fa-spin"></i><p>Cargando...</p>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- ========== MODAL: EMITIR COMPROBANTE ========== -->
+<div class="modal-overlay" id="modalEmitir">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="modalEmitirTitulo"><i class="fa-solid fa-file-invoice-dollar"></i> Emitir Comprobante</h3>
+      <button class="btn-close" onclick="cerrar('modalEmitir')">&times;</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Paso 1: Buscar reserva -->
+      <div class="form-group">
+        <label>Buscar Reserva</label>
+        <div class="flex gap-8">
+          <input type="text" class="form-control" id="emBuscar"
+                 placeholder="Codigo RES-001-000001 o habitacion 101..."
+                 style="flex:1" onkeydown="if(event.key==='Enter') buscarReservaFac()">
+          <button class="btn btn-primary" onclick="buscarReservaFac()">
+            <i class="fa-solid fa-search"></i> Buscar
+          </button>
+        </div>
+      </div>
+
+      <!-- Info de reserva encontrada -->
+      <div id="emResInfo" style="display:none" class="card card-sm mb-16"
+           style="background:var(--bg-body)"></div>
+
+      <!-- Tipo de comprobante / serie -->
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label>Tipo de Comprobante</label>
+          <select class="form-control" id="emTipo" onchange="filtrarSeries()">
+            <option value="BOLETA">Boleta de Venta</option>
+            <option value="FACTURA">Factura</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Serie</label>
+          <select class="form-control" id="emSerie">
+            <option value="">Cargando series...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Datos del receptor (solo factura) -->
+      <div id="emDatosFactura" style="display:none">
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label>RUC</label>
+            <input type="text" class="form-control" id="emRUC" maxlength="11"
+                   placeholder="20123456789">
+          </div>
+          <div class="form-group">
+            <label>Razon Social</label>
+            <input type="text" class="form-control" id="emRazonSocial"
+                   placeholder="Empresa S.A.C.">
+          </div>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div class="form-group">
+        <div class="flex justify-between items-center mb-16" style="margin-bottom:8px">
+          <label style="margin-bottom:0">Items / Conceptos</label>
+          <button class="btn btn-ghost btn-sm" onclick="agregarItem()">
+            <i class="fa-solid fa-plus"></i> Agregar Item
+          </button>
+        </div>
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width:45%">Descripcion</th>
+              <th style="width:12%;text-align:center">Cant.</th>
+              <th style="width:17%;text-align:right">P. Unit.</th>
+              <th style="width:12%;text-align:center">IGV%</th>
+              <th style="width:14%;text-align:right">Subtotal</th>
+              <th style="width:40px"></th>
+            </tr>
+          </thead>
+          <tbody id="emItems"></tbody>
+        </table>
+      </div>
+
+      <!-- Totales -->
+      <div class="totales-box" id="emTotalesBox">
+        <div class="totales-row">
+          <span class="label">Op. Gravadas</span>
+          <span id="ttGravadas">S/ 0.00</span>
+        </div>
+        <div class="totales-row">
+          <span class="label">Op. Exoneradas</span>
+          <span id="ttExoneradas">S/ 0.00</span>
+        </div>
+        <div class="totales-row">
+          <span class="label">IGV (18%)</span>
+          <span id="ttIGV">S/ 0.00</span>
+        </div>
+        <div class="totales-row">
+          <span class="label">TOTAL</span>
+          <span id="ttTotal">S/ 0.00</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrar('modalEmitir')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarEmision()">
+        <i class="fa-solid fa-paper-plane"></i> Emitir Comprobante
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: DETALLE COMPROBANTE ========== -->
+<div class="modal-overlay" id="modalDetalle">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="dtTitulo">Comprobante</h3>
+      <button class="btn-close" onclick="cerrar('modalDetalle')">&times;</button>
+    </div>
+    <div class="modal-body" id="dtBody"></div>
+    <div class="modal-footer" id="dtFooter"></div>
+  </div>
+</div>
+
+<!-- ========== MODAL: CONFIRMAR ANULAR ========== -->
+<div class="modal-overlay" id="modalAnular">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-ban" style="color:var(--red)"></i> Anular Comprobante</h3>
+      <button class="btn-close" onclick="cerrar('modalAnular')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom:16px">
+        Esta accion emitira una solicitud de anulacion ante SUNAT. Ingrese el motivo:
+      </p>
+      <div class="form-group">
+        <label>Motivo de Anulacion</label>
+        <textarea class="form-control" id="anularMotivo" rows="3"
+                  placeholder="Descripcion del motivo..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrar('modalAnular')">Cancelar</button>
+      <button class="btn btn-danger" onclick="ejecutarAnulacion()">
+        <i class="fa-solid fa-ban"></i> Confirmar Anulacion
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script>
+initLayout('facturacion');
+
+/* ─── Estado ───────────────────────────────────────────── */
+let series      = [];
+let reservaFac  = null;
+let idAnular    = null;
+let tipoEmision = 'BOLETA';
+
+/* ─── Init ─────────────────────────────────────────────── */
+async function init() {
+  const hoy = new Date();
+  const mesVal = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0');
+  const elMes   = document.getElementById('fMes');
+  const elMesNC = document.getElementById('fMesNC');
+  if (elMes   && !elMes.value)   elMes.value   = mesVal;
+  if (elMesNC && !elMesNC.value) elMesNC.value = mesVal;
+
+  await Promise.all([
+    cargarKPIs(),
+    cargarSeries(),
+    cargarComprobantes(),
+    cargarPendientes()
+  ]);
+}
+
+/* ─── KPIs ─────────────────────────────────────────────── */
+async function cargarKPIs() {
+  try {
+    const hoy = new Date();
+    const res = await api.get(`/fac/resumen-mes?mes=${hoy.getMonth()+1}&anio=${hoy.getFullYear()}`);
+    const d   = res.data;
+    document.getElementById('kFacturasHoy').textContent  = d.facturasHoy  ?? d.facturas  ?? '—';
+    document.getElementById('kBoletasHoy').textContent   = d.boletasHoy   ?? d.boletas   ?? '—';
+    document.getElementById('kTotalHoy').textContent     = fMoneda(d.totalHoy ?? d.monto ?? 0);
+    document.getElementById('kNotasCredito').textContent = d.notasCredito ?? '—';
+  } catch(e) { /* silencioso */ }
+}
+
+/* ─── Series ───────────────────────────────────────────── */
+async function cargarSeries() {
+  try {
+    const res = await api.get('/fac/series');
+    series = res.data || [];
+    filtrarSeries();
+  } catch(e) {
+    document.getElementById('emSerie').innerHTML =
+      '<option value="">Error cargando series</option>';
+  }
+}
+
+function filtrarSeries() {
+  const tipo  = document.getElementById('emTipo').value;
+  const tdoc  = tipo === 'FACTURA' ? '01' : '03';
+  const sel   = document.getElementById('emSerie');
+  const filt  = series.filter(s => s.tipoDoc === tdoc || !s.tipoDoc);
+  sel.innerHTML = filt.length
+    ? filt.map(s =>
+        `<option value="${s.id}">${s.etiqueta} (sig: ${String(s.correlativo).padStart(6,'0')})</option>`
+      ).join('')
+    : '<option value="">Sin series configuradas</option>';
+
+  // Mostrar/ocultar campos factura
+  document.getElementById('emDatosFactura').style.display =
+    tipo === 'FACTURA' ? 'block' : 'none';
+}
+
+/* ─── Tabla Comprobantes ───────────────────────────────── */
+async function cargarComprobantes() {
+  const q     = document.getElementById('fQ').value;
+  const est   = document.getElementById('fEstado').value;
+  const tipo  = document.getElementById('fTipo').value;
+  const mes   = document.getElementById('fMes').value;
+  const tbody = document.getElementById('tbComprobantes');
+
+  tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Cargando...</p></td></tr>';
+
+  try {
+    const hoy   = new Date();
+    let params  = `mes=${mes ? mes.split('-')[1] : hoy.getMonth()+1}` +
+                  `&anio=${mes ? mes.split('-')[0] : hoy.getFullYear()}`;
+    if (q)   params += `&q=${encodeURIComponent(q)}`;
+    if (est) params += `&estado=${est}`;
+    if (tipo) params += `&tipo=${tipo}`;
+
+    const res = await api.get(`/fac/comprobantes?${params}`);
+    const list = res.data || [];
+
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
+        <i class="fa-solid fa-file-invoice"></i>
+        <p>Sin comprobantes en este periodo</p>
+      </div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(c => `
+      <tr>
+        <td style="font-family:monospace;font-size:12px">${c.numero || c.serie}</td>
+        <td>${badgeTipo(c.tipoDoc || c.tipo)}</td>
+        <td>
+          <div style="font-weight:500">${c.cliente || '—'}</div>
+          <div class="text-xs text-muted">${c.numDoc || ''}</div>
+        </td>
+        <td class="muted">${fFecha(c.fecha)}</td>
+        <td style="text-align:right" class="muted">${fMoneda(c.baseImp ?? c.subtotalGrav ?? 0)}</td>
+        <td style="text-align:right" class="muted">${fMoneda(c.igv ?? 0)}</td>
+        <td style="text-align:right;font-weight:600">${fMoneda(c.total ?? 0)}</td>
+        <td>${badgeEstado(c.estado)}</td>
+        <td style="text-align:center">
+          <button class="btn-action" style="background:var(--accent-light);color:var(--accent)"
+                  onclick="verDetalle(${c.id})">
+            <i class="fa-solid fa-eye"></i> Ver
+          </button>
+        </td>
+      </tr>`).join('');
+
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
+      <i class="fa-solid fa-circle-exclamation" style="color:var(--red)"></i>
+      <p>${e.message}</p>
+    </div></td></tr>`;
+  }
+}
+
+/* ─── Tabla Pendientes ─────────────────────────────────── */
+async function cargarPendientes() {
+  const tbody = document.getElementById('tbPendientes');
+  try {
+    const res  = await api.get('/fac/pendientes');
+    const list = res.data || [];
+
+    const badge = document.getElementById('badgePendientes');
+    if (list.length) {
+      badge.style.display = 'inline';
+      badge.textContent   = list.length;
+    } else {
+      badge.style.display = 'none';
+    }
+
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+        <i class="fa-solid fa-check-circle" style="color:var(--green)"></i>
+        <p>Sin reservas pendientes de facturar</p>
+      </div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(r => `
+      <tr>
+        <td style="font-family:monospace;font-size:12px">${r.codigo || r.id}</td>
+        <td>
+          <div style="font-weight:500">${r.huesped}</div>
+          <div class="text-xs text-muted">${r.documento || ''}</div>
+        </td>
+        <td>${r.habitacion}</td>
+        <td class="muted">${fFecha(r.checkout || r.salida)}</td>
+        <td style="text-align:right;font-weight:600">${fMoneda(r.total)}</td>
+        <td style="text-align:right;color:${r.saldo > 0 ? 'var(--red)' : 'var(--green)'}">
+          ${fMoneda(r.saldo ?? 0)}
+        </td>
+        <td style="text-align:center">
+          <button class="btn btn-primary btn-sm" onclick="emitirDesdeReserva(${r.id})">
+            <i class="fa-solid fa-paper-plane"></i> Emitir
+          </button>
+        </td>
+      </tr>`).join('');
+
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+      <i class="fa-solid fa-circle-exclamation" style="color:var(--red)"></i>
+      <p>${e.message}</p>
+    </div></td></tr>`;
+  }
+}
+
+/* ─── Tabla Notas de Credito ───────────────────────────── */
+async function cargarNotas() {
+  const q     = document.getElementById('fQNC').value;
+  const mes   = document.getElementById('fMesNC').value;
+  const tbody = document.getElementById('tbNotas');
+
+  tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Cargando...</p></td></tr>';
+
+  try {
+    const hoy   = new Date();
+    let params  = `mes=${mes ? mes.split('-')[1] : hoy.getMonth()+1}` +
+                  `&anio=${mes ? mes.split('-')[0] : hoy.getFullYear()}&tipo=NC`;
+    if (q) params += `&q=${encodeURIComponent(q)}`;
+
+    const res  = await api.get(`/fac/comprobantes?${params}`);
+    const list = res.data || [];
+
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+        <i class="fa-solid fa-file-circle-minus"></i>
+        <p>Sin notas de credito en este periodo</p>
+      </div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(c => `
+      <tr>
+        <td style="font-family:monospace;font-size:12px">${c.numero}</td>
+        <td style="font-family:monospace;font-size:12px;color:var(--accent)">${c.refiere || '—'}</td>
+        <td class="muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${c.motivo || '—'}</td>
+        <td class="muted">${fFecha(c.fecha)}</td>
+        <td style="text-align:right;font-weight:600;color:var(--red)">-${fMoneda(c.total)}</td>
+        <td>${badgeEstado(c.estado)}</td>
+        <td style="text-align:center">
+          <button class="btn-action" style="background:var(--accent-light);color:var(--accent)"
+                  onclick="verDetalle(${c.id})">
+            <i class="fa-solid fa-eye"></i> Ver
+          </button>
+        </td>
+      </tr>`).join('');
+
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+      <i class="fa-solid fa-circle-exclamation" style="color:var(--red)"></i>
+      <p>${e.message}</p>
+    </div></td></tr>`;
+  }
+}
+
+/* ─── Badges ───────────────────────────────────────────── */
+function badgeTipo(t) {
+  if (!t) return '<span class="badge badge-gray">—</span>';
+  const map = {
+    '01':'FACTURA', 'FACTURA':'FACTURA',
+    '03':'BOLETA',  'BOLETA':'BOLETA',
+    '07':'N.CREDITO','NC':'N.CREDITO'
+  };
+  const label = map[t] || t;
+  const cls   = label === 'FACTURA' ? 'badge-green'
+              : label === 'BOLETA'  ? 'badge-blue'
+              : 'badge-purple';
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function badgeEstado(e) {
+  if (!e) return '<span class="badge badge-gray">—</span>';
+  const map = {
+    'EMITIDA':      'badge-blue',
+    'ENVIADA_SUNAT':'badge-yellow',
+    'ENVIADO':      'badge-yellow',
+    'ACEPTADA':     'badge-green',
+    'ACEPTADO':     'badge-green',
+    'RECHAZADA':    'badge-red',
+    'RECHAZADO':    'badge-red',
+    'ANULADA':      'badge-gray',
+    'ANULADO':      'badge-gray',
+    'PENDIENTE':    'badge-yellow'
+  };
+  const dot = {
+    'ENVIADA_SUNAT': 'yellow', 'ENVIADO': 'yellow',
+    'ACEPTADA': 'green', 'ACEPTADO': 'green'
+  };
+  const cls  = map[e]  || 'badge-gray';
+  const dotC = dot[e];
+  const dotHtml = dotC ? `<span class="pulse-dot ${dotC}"></span>` : '';
+  return `<span class="badge ${cls}">${dotHtml}${e.replace('_',' ')}</span>`;
+}
+
+/* ─── Tabs ─────────────────────────────────────────────── */
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+
+  if (tab === 'notas' && !document.getElementById('tbNotas').children.length) {
+    cargarNotas();
+  }
+}
+
+/* ─── Abrir modal emitir ───────────────────────────────── */
+function abrirEmitir(tipo) {
+  tipoEmision = tipo || 'BOLETA';
+  reservaFac  = null;
+
+  document.getElementById('emBuscar').value      = '';
+  document.getElementById('emResInfo').style.display = 'none';
+  document.getElementById('emRUC')         && (document.getElementById('emRUC').value = '');
+  document.getElementById('emRazonSocial') && (document.getElementById('emRazonSocial').value = '');
+
+  document.getElementById('emTipo').value = tipoEmision;
+  filtrarSeries();
+
+  document.getElementById('modalEmitirTitulo').innerHTML =
+    `<i class="fa-solid fa-file-invoice-dollar"></i> Nueva ${tipoEmision === 'FACTURA' ? 'Factura' : 'Boleta de Venta'}`;
+
+  // Items: iniciar con 1 item vacio
+  resetItems();
+  document.getElementById('modalEmitir').classList.add('open');
+}
+
+function emitirDesdeReserva(idRes) {
+  abrirEmitir('BOLETA');
+  document.getElementById('emBuscar').value = String(idRes);
+  buscarReservaFac();
+}
+
+/* ─── Items en modal ───────────────────────────────────── */
+let items = [];
+
+function resetItems() {
+  items = [];
+  agregarItem();
+}
+
+function agregarItem() {
+  const idx = items.length;
+  items.push({ descripcion:'', cantidad:1, precioUnit:0, igvPct:18 });
+  renderItems();
+}
+
+function renderItems() {
+  const tbody = document.getElementById('emItems');
+  tbody.innerHTML = items.map((it, i) => `
+    <tr>
+      <td>
+        <input type="text" value="${it.descripcion}"
+               oninput="items[${i}].descripcion=this.value"
+               placeholder="Descripcion del concepto">
+      </td>
+      <td>
+        <input type="number" value="${it.cantidad}" min="1" step="1"
+               style="text-align:center"
+               oninput="items[${i}].cantidad=parseFloat(this.value)||1; calcTotales()">
+      </td>
+      <td>
+        <input type="number" value="${it.precioUnit}" min="0" step="0.01"
+               style="text-align:right"
+               oninput="items[${i}].precioUnit=parseFloat(this.value)||0; calcTotales()">
+      </td>
+      <td>
+        <input type="number" value="${it.igvPct}" min="0" max="100" step="0.5"
+               style="text-align:center"
+               oninput="items[${i}].igvPct=parseFloat(this.value)||0; calcTotales()">
+      </td>
+      <td style="text-align:right;color:var(--text-muted);font-size:12px">
+        ${fMoneda(it.cantidad * it.precioUnit)}
+      </td>
+      <td>
+        ${items.length > 1
+          ? `<button class="btn-icon" onclick="quitarItem(${i})">
+               <i class="fa-solid fa-xmark"></i>
+             </button>`
+          : ''}
+      </td>
+    </tr>`).join('');
+  calcTotales();
+}
+
+function quitarItem(i) {
+  items.splice(i, 1);
+  renderItems();
+}
+
+function calcTotales() {
+  let gravadas  = 0;
+  let exon      = 0;
+  let igvTotal  = 0;
+
+  items.forEach(it => {
+    const base = it.cantidad * it.precioUnit;
+    if (it.igvPct > 0) {
+      const baseImp = base / (1 + it.igvPct/100);
+      gravadas += baseImp;
+      igvTotal += base - baseImp;
+    } else {
+      exon += base;
+    }
+  });
+
+  const total = gravadas + exon + igvTotal;
+
+  document.getElementById('ttGravadas').textContent  = fMoneda(gravadas);
+  document.getElementById('ttExoneradas').textContent = fMoneda(exon);
+  document.getElementById('ttIGV').textContent        = fMoneda(igvTotal);
+  document.getElementById('ttTotal').textContent      = fMoneda(total);
+}
+
+/* ─── Buscar reserva ───────────────────────────────────── */
+async function buscarReservaFac() {
+  const q = document.getElementById('emBuscar').value.trim();
+  if (!q) return;
+  try {
+    const res = await api.get('/reservas?q=' + encodeURIComponent(q) + '&limit=3');
+    if (!res.data.length) { toast('Reserva no encontrada', 'warning'); return; }
+    const r = res.data.find(x => ['CHECKIN','CHECKOUT'].includes(x.estado)) || res.data[0];
+    reservaFac = r;
+
+    const info = document.getElementById('emResInfo');
+    info.style.display = 'block';
+    info.innerHTML = `
+      <div class="flex justify-between items-center">
+        <div>
+          <div style="font-weight:600;font-size:14px">Hab ${r.habitacion} &mdash; ${r.huesped}</div>
+          <div class="text-xs text-muted">${r.documento || ''} &middot; IGV: ${r.tipoIGV || '—'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:18px;font-weight:700">${fMoneda(r.total)}</div>
+          <div class="text-xs" style="color:${r.saldo>0?'var(--red)':'var(--green)'}">
+            Saldo: ${fMoneda(r.saldo)}
+          </div>
+        </div>
+      </div>`;
+
+    // Prellenar primer item con dato de hospedaje
+    if (r.noches && r.total) {
+      items = [{
+        descripcion: `Servicio de hospedaje ${r.noches} noche(s) - Hab ${r.habitacion}`,
+        cantidad: 1,
+        precioUnit: r.total,
+        igvPct: r.tipoIGV === 'EXONERADO' ? 0 : 18
+      }];
+      renderItems();
+    }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+/* ─── Confirmar emision ────────────────────────────────── */
+async function confirmarEmision() {
+  const idSerie = parseInt(document.getElementById('emSerie').value);
+  if (!idSerie) { toast('Seleccione una serie', 'warning'); return; }
+
+  const tipo = document.getElementById('emTipo').value;
+
+  // Validar items
+  const itemsValidos = items.filter(it => it.descripcion.trim() && it.precioUnit > 0);
+  if (!itemsValidos.length) { toast('Agregue al menos un item valido', 'warning'); return; }
+
+  let payload = {
+    idSerie,
+    tipo,
+    items: itemsValidos
+  };
+
+  if (reservaFac) payload.idReserva = reservaFac.id;
+
+  if (tipo === 'FACTURA') {
+    const ruc = document.getElementById('emRUC').value.trim();
+    const rs  = document.getElementById('emRazonSocial').value.trim();
+    if (!ruc || ruc.length !== 11) { toast('RUC invalido (11 digitos)', 'warning'); return; }
+    if (!rs) { toast('Ingrese la razon social', 'warning'); return; }
+    payload.ruc         = ruc;
+    payload.razonSocial = rs;
+  }
+
+  try {
+    const res = await api.post('/fac/emitir', payload);
+    toast(`Comprobante ${res.data.numero} emitido correctamente`, 'success');
+    cerrar('modalEmitir');
+    init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+/* ─── Ver detalle ──────────────────────────────────────── */
+async function verDetalle(id) {
+  document.getElementById('dtBody').innerHTML =
+    '<div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Cargando...</p></div>';
+  document.getElementById('dtFooter').innerHTML = '';
+  document.getElementById('modalDetalle').classList.add('open');
+
+  try {
+    const res = await api.get('/fac/' + id);
+    const c   = res.data;
+    const TDOC = { '01':'FACTURA', '03':'BOLETA', '07':'NOTA DE CREDITO' };
+
+    document.getElementById('dtTitulo').innerHTML =
+      `<i class="fa-solid fa-file-invoice"></i> ${c.numero} &mdash; ${TDOC[c.tipoDoc] || c.tipoDoc || 'COMPROBANTE'}`;
+
+    document.getElementById('dtBody').innerHTML = `
+      <div class="grid-2" style="gap:16px;margin-bottom:16px">
+        <div>
+          <div class="text-xs text-muted" style="margin-bottom:4px">RECEPTOR</div>
+          <div style="font-weight:600">${c.cliente || '—'}</div>
+          <div class="text-xs text-muted">${c.tipoDocCli || ''} ${c.numDoc || ''}</div>
+        </div>
+        <div>
+          <div class="text-xs text-muted" style="margin-bottom:4px">ESTADO</div>
+          ${badgeEstado(c.estado)}
+          ${c.cdrEstado ? `<div class="text-xs text-muted" style="margin-top:4px">CDR: ${c.cdrEstado}</div>` : ''}
+        </div>
+        <div>
+          <div class="text-xs text-muted" style="margin-bottom:4px">FECHA EMISION</div>
+          <div>${fFecha(c.fecha)}</div>
+        </div>
+        <div>
+          <div class="text-xs text-muted" style="margin-bottom:4px">PRO7 ID</div>
+          <div style="font-family:monospace;font-size:12px">${c.pro7Id || '—'}</div>
+        </div>
+      </div>
+
+      ${c.refiere ? `
+        <div style="background:var(--purple-light);border-radius:var(--radius-sm);
+             padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--purple)">
+          <i class="fa-solid fa-link"></i>
+          Nota de credito referida a: <strong>${c.refiere}</strong><br>
+          Motivo: ${c.motivo}
+        </div>` : ''}
+
+      <div style="background:var(--bg-body);border-radius:var(--radius-sm);
+           padding:12px;margin-bottom:12px">
+        ${(c.items || []).map(it => `
+          <div class="flex justify-between" style="padding:5px 0;
+               border-bottom:1px solid var(--border);font-size:12px">
+            <span>${it.descripcion} <span class="text-muted">(x${it.cantidad})</span></span>
+            <span>${fMoneda(it.subtotal)}</span>
+          </div>`).join('')}
+        <div class="totales-row" style="margin-top:8px">
+          <span class="label">Base Imponible</span><span>${fMoneda(c.subtotalGrav ?? 0)}</span>
+        </div>
+        ${c.subtotalExon > 0 ? `
+          <div class="totales-row">
+            <span class="label">Exonerado</span><span>${fMoneda(c.subtotalExon)}</span>
+          </div>` : ''}
+        <div class="totales-row">
+          <span class="label">IGV</span><span>${fMoneda(c.igv ?? 0)}</span>
+        </div>
+        <div class="totales-row" style="border-top:1px solid var(--border);
+             margin-top:6px;padding-top:8px;font-weight:700;font-size:15px">
+          <span>TOTAL</span><span>${fMoneda(c.total ?? 0)}</span>
+        </div>
+      </div>`;
+
+    // Botones footer
+    const btns = [];
+    if (c.estado !== 'ANULADO' && c.estado !== 'ANULADA' && !c.esNC) {
+      btns.push(`<button class="btn" style="background:var(--purple-light);color:var(--purple)"
+                         onclick="emitirNC(${id})">
+                   <i class="fa-solid fa-file-circle-minus"></i> Nota de Credito
+                 </button>`);
+    }
+    if (['PENDIENTE','ENVIADO','EMITIDA','ENVIADA_SUNAT'].includes(c.estado)) {
+      btns.push(`<button class="btn btn-danger" onclick="abrirAnular(${id})">
+                   <i class="fa-solid fa-ban"></i> Anular
+                 </button>`);
+    }
+    if (c.pro7Id && !['ACEPTADO','ACEPTADA'].includes(c.estado)) {
+      btns.push(`<button class="btn btn-ghost" onclick="syncSUNAT(${id})">
+                   <i class="fa-solid fa-rotate"></i> Sync SUNAT
+                 </button>`);
+    }
+    document.getElementById('dtFooter').innerHTML = btns.join('');
+
+  } catch(e) {
+    document.getElementById('dtBody').innerHTML =
+      `<div class="empty-state">
+         <i class="fa-solid fa-circle-exclamation" style="color:var(--red)"></i>
+         <p>${e.message}</p>
+       </div>`;
+  }
+}
+
+/* ─── Anular ───────────────────────────────────────────── */
+function abrirAnular(id) {
+  idAnular = id;
+  document.getElementById('anularMotivo').value = '';
+  cerrar('modalDetalle');
+  document.getElementById('modalAnular').classList.add('open');
+}
+
+async function ejecutarAnulacion() {
+  const motivo = document.getElementById('anularMotivo').value.trim();
+  if (!motivo) { toast('Ingrese el motivo de anulacion', 'warning'); return; }
+  try {
+    await api.post('/fac/' + idAnular + '/anular', { motivo });
+    toast('Comprobante anulado correctamente', 'success');
+    cerrar('modalAnular');
+    init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+/* ─── Nota de Credito ──────────────────────────────────── */
+async function emitirNC(id) {
+  const motivo = prompt('Motivo de la nota de credito:');
+  if (!motivo) return;
+  try {
+    const res = await api.post('/fac/' + id + '/nota-credito', { motivo });
+    toast('Nota de credito ' + res.data.numero + ' emitida', 'success');
+    cerrar('modalDetalle');
+    init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+/* ─── Sync SUNAT ───────────────────────────────────────── */
+async function syncSUNAT(id) {
+  try {
+    const res = await api.post('/fac/' + id + '/sincronizar', {});
+    toast('Estado SUNAT: ' + res.data.estado, 'info');
+    cerrar('modalDetalle');
+    init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+/* ─── Helpers ──────────────────────────────────────────── */
+function cerrar(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+init();
+</script>
+</body>
+</html>

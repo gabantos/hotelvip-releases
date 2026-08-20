@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>HotelVIP — Reportes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#0F172A;color:#E2E8F0;min-height:100vh}
+.header{background:#111C2E;border-bottom:1px solid rgba(255,255,255,.06);padding:0 24px;
+  height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-logo{font-size:18px;font-weight:700;color:#fff}.header-logo span{color:#2980B9}
+.nav-tabs{display:flex;gap:4px}
+.nav-tab{padding:6px 14px;border-radius:6px;font-size:13px;color:rgba(255,255,255,.5);
+  cursor:pointer;text-decoration:none;transition:all .15s}
+.nav-tab:hover{background:rgba(255,255,255,.06);color:#fff}.nav-tab.active{background:#1A3A5C;color:#fff}
+.btn-sm{padding:6px 14px;border-radius:6px;font-size:13px;border:none;cursor:pointer;font-weight:600}
+.btn-ghost{background:rgba(255,255,255,.06);color:#fff}
+.btn-logout{padding:6px 14px;background:rgba(231,76,60,.15);color:#E74C3C;border:1px solid rgba(231,76,60,.2);border-radius:6px;font-size:12px;cursor:pointer}
+
+.page{padding:20px 24px;max-width:1300px}
+
+/* KPI STRIP */
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px}
+.kpi{background:#111C2E;border-radius:10px;padding:14px;
+  border:1px solid rgba(255,255,255,.05);position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.c-azul::before{background:#2980B9}
+.kpi.c-verde::before{background:#27AE60}
+.kpi.c-naranja::before{background:#F39C12}
+.kpi.c-rojo::before{background:#E74C3C}
+.kpi.c-lila::before{background:#9B59B6}
+.kpi.c-cyan::before{background:#1ABC9C}
+.kpi-ico{font-size:22px;margin-bottom:6px}
+.kpi-v{font-size:22px;font-weight:700;line-height:1}
+.kpi-l{font-size:11px;color:rgba(255,255,255,.35);margin-top:4px}
+.kpi-sub{font-size:11px;margin-top:3px}
+
+/* GRAFICAS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.card{background:#111C2E;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)}
+.card-title{font-size:12px;font-weight:600;color:rgba(255,255,255,.5);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+.chart-wrap{position:relative;height:220px}
+
+/* TABLAS */
+.mini-tabla{width:100%;border-collapse:collapse;font-size:12px}
+.mini-tabla th{padding:7px 10px;text-align:left;color:rgba(255,255,255,.3);
+  font-weight:600;text-transform:uppercase;letter-spacing:.4px;font-size:10px}
+.mini-tabla td{padding:7px 10px;border-top:1px solid rgba(255,255,255,.04)}
+.mini-tabla tr:first-child td{border-top:none}
+
+/* BAR HORIZONTAL */
+.hbar{background:rgba(255,255,255,.04);border-radius:4px;height:8px;margin:3px 0}
+.hbar-fill{height:100%;border-radius:4px;background:#2980B9;transition:width .4s}
+
+.tabs{display:flex;gap:4px;background:rgba(255,255,255,.04);border-radius:8px;
+  padding:4px;margin-bottom:16px}
+.tab-btn{padding:7px 16px;border-radius:6px;font-size:13px;border:none;
+  background:transparent;color:rgba(255,255,255,.5);cursor:pointer}
+.tab-btn.active{background:#1A3A5C;color:#fff}
+</style>
+</head>
+<body>
+<div class="header">
+  <div style="display:flex;align-items:center;gap:16px">
+    <div class="header-logo">Hotel<span>VIP</span></div>
+    <nav class="nav-tabs">
+      <a href="recepcion.html"  class="nav-tab">Recepcion</a>
+      <a href="caja.html"       class="nav-tab">Caja</a>
+      <a href="servicios.html"  class="nav-tab">Servicios</a>
+      <a href="facturacion.html"class="nav-tab">Facturacion</a>
+      <a href="reportes.html"   class="nav-tab active">Reportes</a>
+    </nav>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <span id="lblUsr" style="font-size:13px;color:rgba(255,255,255,.7)"></span>
+    <button class="btn-sm btn-ghost" onclick="init()">&#8635;</button>
+    <button class="btn-logout" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h2 style="font-size:17px;font-weight:600">Dashboard & Reportes</h2>
+    <div style="font-size:12px;color:rgba(255,255,255,.3)" id="lblFecha"></div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip" id="kpiStrip">
+    <div class="kpi c-azul"><div class="kpi-ico">🏠</div>
+      <div class="kpi-v" id="kEnCasa">-</div><div class="kpi-l">En Casa</div></div>
+    <div class="kpi c-verde"><div class="kpi-ico">✅</div>
+      <div class="kpi-v" id="kCheckins">-</div><div class="kpi-l">Check-in Hoy</div></div>
+    <div class="kpi c-naranja"><div class="kpi-ico">📤</div>
+      <div class="kpi-v" id="kCheckouts">-</div><div class="kpi-l">Check-out Hoy</div></div>
+    <div class="kpi c-lila"><div class="kpi-ico">🛏️</div>
+      <div class="kpi-v" id="kDispon">-</div><div class="kpi-l">Habs Disponibles</div></div>
+    <div class="kpi c-cyan"><div class="kpi-ico">💰</div>
+      <div class="kpi-v" id="kCaja">-</div><div class="kpi-l">S/ Caja Hoy</div></div>
+    <div class="kpi c-rojo"><div class="kpi-ico">⚡</div>
+      <div class="kpi-v" id="kAlertas" style="color:#F39C12">-</div>
+      <div class="kpi-l">Alertas</div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="cambiarTab('general',this)">General</button>
+    <button class="tab-btn"        onclick="cambiarTab('ocupacion',this)">Ocupacion</button>
+    <button class="tab-btn"        onclick="cambiarTab('servicios',this)">Servicios</button>
+    <button class="tab-btn"        onclick="cambiarTab('operaciones',this)">Operaciones</button>
+  </div>
+
+  <!-- GENERAL -->
+  <div id="tabGeneral">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Ingresos Ultimos 6 Meses</div>
+        <div class="chart-wrap"><canvas id="chartIngresos"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Reservas por Canal</div>
+        <div class="chart-wrap"><canvas id="chartCanales"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">Saldos Pendientes</div>
+        <table class="mini-tabla">
+          <thead><tr><th>Reserva</th><th>Hab</th><th>Saldo</th><th>Sale</th></tr></thead>
+          <tbody id="tblSaldos"></tbody>
+        </table>
+      </div>
+      <div class="card" style="grid-column:span 2">
+        <div class="card-title">Resumen Mensual</div>
+        <table class="mini-tabla">
+          <thead><tr><th>Mes</th><th>Reservas</th><th>Aloj.</th><th>Servicios</th><th>Total</th><th>Desc.</th><th>Cancel.</th></tr></thead>
+          <tbody id="tblMensual"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- OCUPACION -->
+  <div id="tabOcupacion" style="display:none">
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+      <input type="month" class="fi" id="mesOcup"
+             style="padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:6px;color:#fff;font-size:13px;outline:none">
+      <button class="btn-sm btn-ghost" onclick="cargarOcupacion()">Aplicar</button>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">% Ocupacion por Dia</div>
+        <div class="chart-wrap"><canvas id="chartOcupDia"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ingresos por Dia</div>
+        <div class="chart-wrap"><canvas id="chartIngDia"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SERVICIOS -->
+  <div id="tabServicios" style="display:none">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Top Servicios por Venta</div>
+        <div id="topSvc"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Distribucion por Categoria</div>
+        <div class="chart-wrap"><canvas id="chartSvcCat"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPERACIONES -->
+  <div id="tabOperaciones" style="display:none">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Rendimiento Housekeeping (30 dias)</div>
+        <table class="mini-tabla">
+          <thead><tr><th>Fecha</th><th>Camarera</th><th>Total</th><th>Comp.</th><th>Pend.</th><th>Min/Hab</th></tr></thead>
+          <tbody id="tblHSK"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">Estado Integraciones</div>
+        <div id="statusInteg" style="padding:8px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/core/api.js"></script>
+<script>
+const usr=JSON.parse(localStorage.getItem('hv_usuario')||'{}');
+if(!api._token) location.href='login.html';
+document.getElementById('lblUsr').textContent=usr.nombres||'';
+document.getElementById('lblFecha').textContent=new Date().toLocaleDateString('es-PE',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+function logout(){ api.clearAuth(); location.href='login.html'; }
+
+// Inicializar mes actual
+const hoy=new Date();
+document.getElementById('mesOcup').value=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
+
+let charts={};
+const COLORES=['#2980B9','#27AE60','#F39C12','#E74C3C','#9B59B6','#1ABC9C','#E67E22'];
+
+function mkChart(id,type,labels,datasets,opts={}){
+  if(charts[id]) charts[id].destroy();
+  const ctx=document.getElementById(id)?.getContext('2d');
+  if(!ctx) return;
+  charts[id]=new Chart(ctx,{
+    type,
+    data:{labels,datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'rgba(255,255,255,.5)',font:{size:11}}},
+               tooltip:{backgroundColor:'#1A2740',titleColor:'#fff',bodyColor:'rgba(255,255,255,.7)'}},
+      scales: type==='doughnut'?{}:{
+        x:{ticks:{color:'rgba(255,255,255,.4)',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'rgba(255,255,255,.4)',font:{size:10}},grid:{color:'rgba(255,255,255,.06)'}}
+      },
+      ...opts
+    }
+  });
+}
+
+async function init(){
+  try{
+    const [kpis,resumen]=await Promise.all([
+      api.get('/rep/kpis-hoy'),
+      api.get('/rep/resumen')
+    ]);
+    renderKPIs(kpis.data);
+    renderIngresos(resumen.data.ingresosMeses||[]);
+    renderSaldos(resumen.data.saldosPend||[]);
+    renderMensual(resumen.data.ingresosMeses||[]);
+    cargarCanales();
+    cargarServicios();
+    cargarHSK();
+  }catch(e){ toast(e.message,'error'); }
+}
+
+function renderKPIs(d){
+  document.getElementById('kEnCasa').textContent=d.enCasa;
+  document.getElementById('kCheckins').textContent=d.checkinsHoy;
+  document.getElementById('kCheckouts').textContent=d.checkoutsHoy;
+  document.getElementById('kDispon').textContent=d.habsDisponibles;
+  document.getElementById('kCaja').textContent='S/'+Number(d.cajaHoy||0).toFixed(0);
+  const alertas=(d.limpiezasPend||0)+(d.webPendientes||0)+(d.channelNuevas||0);
+  document.getElementById('kAlertas').textContent=alertas;
+
+  // Status integraciones
+  document.getElementById('statusInteg').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${[
+        {n:'Web Reservas', v:d.webPendientes,  c:d.webPendientes>0?'#F39C12':'#27AE60'},
+        {n:'Channel Manager',v:d.channelNuevas,c:d.channelNuevas>0?'#F39C12':'#27AE60'},
+        {n:'Housekeeping', v:d.limpiezasPend,  c:d.limpiezasPend>0?'#F39C12':'#27AE60'},
+        {n:'Servicios Act.',v:d.serviciosActivos,c:d.serviciosActivos>0?'#2980B9':'rgba(255,255,255,.3)'},
+      ].map(i=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;
+          background:#0F172A;border-radius:7px;padding:9px 12px">
+          <span style="font-size:13px">${i.n}</span>
+          <span style="font-size:14px;font-weight:700;color:${i.c}">${i.v}</span>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderIngresos(data){
+  if(!data.length) return;
+  const MESES=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const labels=data.map(d=>MESES[d.mes]+' '+d.anio).reverse();
+  const aloj=data.map(d=>d.ingresoAloj).reverse();
+  const svc=data.map(d=>d.ingresoServ).reverse();
+  mkChart('chartIngresos','bar',labels,[
+    {label:'Alojamiento',data:aloj,backgroundColor:'#2980B9',borderRadius:4},
+    {label:'Servicios',  data:svc, backgroundColor:'#27AE60',borderRadius:4}
+  ]);
+}
+
+async function cargarCanales(){
+  try{
+    const res=await api.get(`/rep/canales?mes=${hoy.getMonth()+1}&anio=${hoy.getFullYear()}`);
+    const d=res.data||[];
+    if(!d.length) return;
+    mkChart('chartCanales','doughnut',
+      d.map(x=>x.canal),
+      [{data:d.map(x=>x.cant),backgroundColor:COLORES,borderWidth:0}]);
+  }catch(e){}
+}
+
+function renderSaldos(data){
+  document.getElementById('tblSaldos').innerHTML=
+    data.slice(0,8).map(r=>`
+      <tr>
+        <td style="font-family:monospace;font-size:11px">${r.codigo}</td>
+        <td>${r.habitacion}</td>
+        <td style="color:#E74C3C;font-weight:700">${fMoneda(r.saldo)}</td>
+        <td style="font-size:11px">${fFecha(r.salida)}</td>
+      </tr>`).join('')||
+    '<tr><td colspan="4" style="text-align:center;color:rgba(255,255,255,.2)">Sin saldos</td></tr>';
+}
+
+function renderMensual(data){
+  const MESES=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('tblMensual').innerHTML=
+    data.slice(0,6).map(r=>`
+      <tr>
+        <td>${MESES[r.mes]} ${r.anio}</td>
+        <td style="text-align:center">${r.reservas}</td>
+        <td>${fMoneda(r.ingresoAloj)}</td>
+        <td>${fMoneda(r.ingresoServ)}</td>
+        <td style="font-weight:700">${fMoneda(r.ingresoTotal)}</td>
+        <td style="color:#E74C3C">${fMoneda(r.descuentos)}</td>
+        <td style="text-align:center;color:rgba(255,255,255,.4)">${r.canceladas}</td>
+      </tr>`).join('')||
+    '<tr><td colspan="7" style="text-align:center;color:rgba(255,255,255,.2)">Sin datos</td></tr>';
+}
+
+async function cargarOcupacion(){
+  const mes=document.getElementById('mesOcup').value;
+  if(!mes) return;
+  const [y,m]=mes.split('-');
+  try{
+    const res=await api.get(`/rep/ocupacion?mes=${m}&anio=${y}`);
+    const d=res.data||[];
+    if(!d.length) return;
+    const dias=d.map(x=>x.fecha.slice(8,10));
+    mkChart('chartOcupDia','line',dias,[
+      {label:'% Ocupacion',data:d.map(x=>x.pctOcupacion),
+       borderColor:'#2980B9',backgroundColor:'rgba(41,128,185,.1)',
+       tension:.3,fill:true,pointRadius:3}
+    ]);
+    mkChart('chartIngDia','bar',dias,[
+      {label:'Alojamiento',data:d.map(x=>x.ingresoAloj),backgroundColor:'#2980B9',borderRadius:3},
+      {label:'Servicios',  data:d.map(x=>x.ingresoSvc), backgroundColor:'#27AE60',borderRadius:3}
+    ]);
+  }catch(e){ toast(e.message,'error'); }
+}
+
+async function cargarServicios(){
+  try{
+    const res=await api.get('/rep/servicios?limite=10');
+    const d=res.data||[];
+    const maxTotal=d[0]?.total||1;
+    document.getElementById('topSvc').innerHTML=d.map(s=>`
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:13px">
+          <span>${s.nombre}</span>
+          <span style="font-weight:700">${fMoneda(s.total)}</span>
+        </div>
+        <div class="hbar"><div class="hbar-fill" style="width:${(s.total/maxTotal*100).toFixed(0)}%"></div></div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3)">${s.categoria} · ${s.vendido}x vendido</div>
+      </div>`).join('');
+
+    // Agrupar por categoria para donut
+    const cats={};
+    d.forEach(s=>{ cats[s.categoria]=(cats[s.categoria]||0)+s.total; });
+    const catKeys=Object.keys(cats);
+    mkChart('chartSvcCat','doughnut',catKeys,
+      [{data:catKeys.map(k=>cats[k]),backgroundColor:COLORES,borderWidth:0}]);
+  }catch(e){}
+}
+
+async function cargarHSK(){
+  try{
+    const res=await api.get('/rep/hsk');
+    document.getElementById('tblHSK').innerHTML=
+      (res.data||[]).slice(0,10).map(r=>`
+        <tr>
+          <td style="font-size:11px">${fFecha(r.fecha)}</td>
+          <td>${r.camarera}</td>
+          <td style="text-align:center">${r.total}</td>
+          <td style="text-align:center;color:#27AE60">${r.completadas}</td>
+          <td style="text-align:center;color:${r.pendientes>0?'#E74C3C':'rgba(255,255,255,.3)'}">${r.pendientes}</td>
+          <td style="text-align:center">${r.minutosP>0?r.minutosP+' min':'—'}</td>
+        </tr>`).join('')||
+      '<tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,.2)">Sin datos</td></tr>';
+  }catch(e){}
+}
+
+function cambiarTab(tab,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['General','Ocupacion','Servicios','Operaciones'].forEach(t=>{
+    document.getElementById('tab'+t).style.display=t.toLowerCase()===tab?'block':'none';
+  });
+  if(tab==='ocupacion') cargarOcupacion();
+}
+
+init();
+setInterval(()=>api.get('/rep/kpis-hoy').then(r=>renderKPIs(r.data)).catch(()=>{}), 60000);
+</script>
+</body>
+</html>

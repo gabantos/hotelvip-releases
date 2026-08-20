@@ -1,16 +1,13 @@
 {
-  "version": "2.0.0",
-  "fecha": "2026-08-19",
+  "version": "2.0.1",
+  "fecha": "2026-08-20",
   "changelog": [
-    "Motor de reservas web: la pagina del hotel toma reservas y bajan solas a recepcion",
-    "Modulo Agencias: tarifa neta o comision por agencia, con liquidaciones y abonos",
-    "Modulo Administracion y Configuracion completos (dashboard, reportes, usuarios)",
-    "Consulta de DNI y RUC configurable por proveedor desde Configuracion > Documentos",
-    "Permisos por rol: cada usuario ve solo sus modulos; Configuracion y Usuarios solo para el administrador",
-    "SEGURIDAD: se corrigio que la API respondia sin token de sesion",
-    "Base de datos: 9 migraciones acumuladas (001-009)",
-    "El instalador aplica ahora TODAS las migraciones y puede dejar el arranque automatico con Windows",
-    "Se corrigio el actualizador, que marcaba las migraciones como aplicadas sin ejecutarlas"
+    "Auditoria pre-despliegue completa: 240 llamadas de prueba en 3 instalaciones, cero errores de base",
+    "Correccion: ficha de habitacion fallaba por columna inexistente en amenidades",
+    "Correccion: lista de insumos de housekeeping fallaba por columna inexistente",
+    "Correccion: la lista y ficha de huespedes fallaban al registrar el primer huesped (mapeo de campos si/no)",
+    "La base de una instalacion nueva queda identica a la de desarrollo, verificado columna por columna",
+    "Este repositorio ahora contiene el sistema completo: instalar = clonar + INSTALAR.bat, actualizar = ACTUALIZAR.bat"
   ],
-  "url_descarga": "https://github.com/gabantos/hotelvip-releases/releases/download/v2.0.0/HotelVip_v2.0.0.zip"
+  "url_descarga": "https://github.com/gabantos/hotelvip-releases/releases/download/v2.0.1/HotelVip_v2.0.1.zip"
 }

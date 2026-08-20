@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP — Reservas</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* ── CALENDARIO ─────────────────────────────────── */
+    .cal-nav{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+    .cal-nav h3{font-size:16px;font-weight:600;min-width:200px;text-align:center}
+    .cal-nav-btn{width:32px;height:32px;background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);border-radius:6px;color:#fff;
+      font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      transition:background .15s}
+    .cal-nav-btn:hover{background:rgba(255,255,255,.12)}
+    .calendario{background:var(--surface,#111C2E);border-radius:12px;overflow:hidden;
+      border:1px solid rgba(255,255,255,.06)}
+    .cal-header{display:grid;grid-template-columns:repeat(7,1fr)}
+    .cal-dia-nombre{text-align:center;padding:10px;font-size:11px;font-weight:600;
+      color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;
+      border-bottom:1px solid rgba(255,255,255,.06)}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+    .cal-dia{min-height:90px;border:1px solid rgba(255,255,255,.04);
+      padding:6px;cursor:pointer;transition:background .15s;vertical-align:top}
+    .cal-dia:hover{background:rgba(255,255,255,.03)}
+    .cal-dia.hoy{background:rgba(41,128,185,.08)}
+    .cal-dia.otro-mes .cal-num{color:rgba(255,255,255,.15)}
+    .cal-num{font-size:13px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:4px}
+    .cal-dia.hoy .cal-num{color:#2980B9;font-size:14px}
+    .cal-evento{font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+    .ev-PENDIENTE{background:rgba(44,62,80,.7);color:#95A5A6}
+    .ev-CONFIRMADA{background:rgba(26,58,92,.7);color:#5DADE2}
+    .ev-CHECKIN{background:rgba(26,76,31,.7);color:#52BE80}
+    .ev-CHECKOUT{background:rgba(50,50,50,.7);color:#888}
+    .ev-CANCELADA{background:rgba(76,26,26,.7);color:#E74C3C}
+
+    /* ── LISTA FILTROS ──────────────────────────────── */
+    .filtros{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+
+    /* ── COTIZACION BOX ─────────────────────────────── */
+    .cotizacion-box{background:rgba(15,23,42,.6);border-radius:8px;padding:14px;
+      margin:12px 0;border:1px solid rgba(255,255,255,.06)}
+    .cot-row{display:flex;justify-content:space-between;font-size:13px;
+      color:rgba(255,255,255,.6);margin-bottom:6px}
+    .cot-row.total{color:#fff;font-weight:700;font-size:15px;
+      border-top:1px solid rgba(255,255,255,.1);padding-top:8px;margin-top:4px}
+    .cot-row span:last-child{color:#fff}
+    .cot-igv{font-size:11px;color:rgba(255,255,255,.3);text-align:right;margin-top:4px}
+
+    /* ── HUESPED RESULT ─────────────────────────────── */
+    .hsp-result{background:rgba(15,23,42,.6);border-radius:8px;padding:12px;
+      margin-top:6px;border:1px solid #2980B9;display:none}
+    .hsp-result .hsp-nom{font-size:14px;font-weight:600;color:#fff}
+    .hsp-result .hsp-det{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
+    .hsp-result.existe{border-color:#27AE60}
+
+    /* ── PASOS ──────────────────────────────────────── */
+    .pasos{display:flex;margin-bottom:20px}
+    .paso{flex:1;text-align:center;padding:10px;font-size:12px;font-weight:600;
+      color:rgba(255,255,255,.3);border-bottom:2px solid rgba(255,255,255,.1);transition:all .2s}
+    .paso.activo{color:#2980B9;border-bottom-color:#2980B9}
+    .paso.done{color:#27AE60;border-bottom-color:#27AE60}
+    .paso-content{display:none}
+    .paso-content.activo{display:block}
+
+    /* ── PASARELAS DE PAGO ─────────────────────────── */
+    .pago-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+    .pago-card{
+      border:2px solid rgba(255,255,255,.08);border-radius:10px;
+      padding:12px 10px;text-align:center;cursor:pointer;transition:all .15s;
+      background:rgba(255,255,255,.03);user-select:none;
+    }
+    .pago-card:hover{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.06)}
+    .pago-card.selected{border-color:var(--accent);background:var(--accent-light)}
+    .pago-card i{font-size:22px;display:block;margin-bottom:6px}
+    .pago-card .pago-nom{font-size:11px;font-weight:600;color:var(--text-muted)}
+    .pago-card.selected .pago-nom{color:var(--accent)}
+    .pago-card.efectivo i{color:#10b981}
+    .pago-card.tarjeta  i{color:#3b82f6}
+    .pago-card.qr       i{color:#8b5cf6}
+    .pago-card.trans    i{color:#f59e0b}
+    .pago-card.culqi    i{color:#ef4444}
+    .pago-card.sin-pago i{color:rgba(255,255,255,.3)}
+    .pago-detalle{
+      background:rgba(15,23,42,.6);border:1px solid rgba(255,255,255,.08);
+      border-radius:8px;padding:14px;margin-bottom:12px;display:none;
+    }
+    .pago-detalle.visible{display:block}
+    .anticipo-row{
+      display:flex;align-items:center;gap:10px;
+      background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.15);
+      border-radius:8px;padding:10px 14px;margin-top:10px;
+    }
+    .anticipo-row label{font-size:12px;color:var(--text-muted);white-space:nowrap;flex-shrink:0}
+    .anticipo-row input{flex:1;background:none;border:none;color:#fff;font-size:16px;
+      font-weight:700;outline:none;text-align:right}
+    .culqi-notice{
+      background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+      border-radius:8px;padding:12px;font-size:12px;color:rgba(239,68,68,.9);
+      display:flex;gap:8px;align-items:flex-start;
+    }
+
+    /* ── DETALLE MODAL ──────────────────────────────── */
+    .det-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px}
+    .det-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+      background:rgba(15,23,42,.6);border-radius:8px;padding:12px;margin-bottom:14px}
+    .det-stat{text-align:center}
+    .det-stat-v{font-size:20px;font-weight:700}
+    .det-stat-l{font-size:11px;color:rgba(255,255,255,.3);margin-top:2px}
+    .det-lbl{font-size:11px;color:rgba(255,255,255,.3);margin-bottom:4px;
+      text-transform:uppercase;letter-spacing:.5px}
+  </style>
+</head>
+<body>
+<div id="app-layout">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <!-- PAGE HEADER -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Reservas</h1>
+        </div>
+        <div class="page-header-actions">
+          <div class="kpi-grid" style="grid-template-columns:repeat(4,auto);gap:8px;margin:0">
+            <div class="kpi-card" style="min-width:110px">
+              <div class="kpi-label">Total hoy</div>
+              <div class="kpi-value" id="kpiTotal">—</div>
+            </div>
+            <div class="kpi-card" style="min-width:110px">
+              <div class="kpi-label">Check-ins hoy</div>
+              <div class="kpi-value" id="kpiCheckins" style="color:#27AE60">—</div>
+            </div>
+            <div class="kpi-card" style="min-width:110px">
+              <div class="kpi-label">Check-outs hoy</div>
+              <div class="kpi-value" id="kpiCheckouts" style="color:#E74C3C">—</div>
+            </div>
+            <div class="kpi-card" style="min-width:110px">
+              <div class="kpi-label">Pendientes</div>
+              <div class="kpi-value" id="kpiPendientes" style="color:#F39C12">—</div>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="abrirModalNueva()">
+            <i class="fa fa-plus"></i> Nueva Reserva
+          </button>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs" style="margin-bottom:20px">
+        <button class="tab-btn active" id="tabCalendario" onclick="cambiarTab('calendario',this)">
+          <i class="fa fa-calendar"></i> Calendario
+        </button>
+        <button class="tab-btn" id="tabLista" onclick="cambiarTab('lista',this)">
+          <i class="fa fa-list"></i> Lista
+        </button>
+        <button class="tab-btn" id="tabTimeline" onclick="cambiarTab('timeline',this)">
+          <i class="fa fa-stream"></i> Timeline
+        </button>
+      </div>
+
+      <!-- TAB CALENDARIO -->
+      <div class="tab-panel active" id="panelCalendario">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="cambiarMes(-1)">&#8249;</button>
+          <h3 id="calTitulo">...</h3>
+          <button class="cal-nav-btn" onclick="cambiarMes(1)">&#8250;</button>
+          <div style="margin-left:auto;display:flex;gap:16px;font-size:13px;color:rgba(255,255,255,.4)">
+            <span>Check-ins hoy: <strong id="lblCheckinsHoy" style="color:#27AE60">—</strong></span>
+            <span>Check-outs hoy: <strong id="lblCheckoutsHoy" style="color:#E74C3C">—</strong></span>
+          </div>
+        </div>
+        <div class="calendario">
+          <div class="cal-header">
+            <div class="cal-dia-nombre">Lun</div>
+            <div class="cal-dia-nombre">Mar</div>
+            <div class="cal-dia-nombre">Mie</div>
+            <div class="cal-dia-nombre">Jue</div>
+            <div class="cal-dia-nombre">Vie</div>
+            <div class="cal-dia-nombre">Sab</div>
+            <div class="cal-dia-nombre">Dom</div>
+          </div>
+          <div class="cal-grid" id="calGrid">
+            <div style="grid-column:span 7;text-align:center;padding:40px;color:rgba(255,255,255,.2)">
+              <i class="fa fa-spinner fa-spin"></i> Cargando...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB LISTA -->
+      <div class="tab-panel" id="panelLista">
+        <div class="filtros">
+          <div class="search-box" style="flex:1;min-width:220px">
+            <i class="fa fa-search"></i>
+            <input type="text" id="fQ" placeholder="Buscar por codigo, huesped, habitacion..."
+                   oninput="cargarLista()">
+          </div>
+          <select class="form-control" id="fEstado" onchange="cargarLista()" style="width:160px">
+            <option value="">Todos los estados</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="CONFIRMADA">Confirmada</option>
+            <option value="CHECKIN">Check-in</option>
+            <option value="CHECKOUT">Checkout</option>
+            <option value="CANCELADA">Cancelada</option>
+            <option value="NO_SHOW">No Show</option>
+          </select>
+          <input type="date" class="form-control" id="fDesde" onchange="cargarLista()" style="width:140px">
+          <input type="date" class="form-control" id="fHasta" onchange="cargarLista()" style="width:140px">
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Nro</th>
+                <th>Huesped</th>
+                <th>Habitacion</th>
+                <th>Check-in</th>
+                <th>Check-out</th>
+                <th>Noches</th>
+                <th>Total</th>
+                <th>Saldo</th>
+                <th>Estado</th>
+                <th>Canal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tablaBody">
+              <tr>
+                <td colspan="11" style="text-align:center;padding:30px;color:rgba(255,255,255,.2)">
+                  <i class="fa fa-spinner fa-spin"></i> Cargando...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB TIMELINE -->
+      <div class="tab-panel" id="panelTimeline">
+        <div class="empty-state">
+          <i class="fa fa-stream fa-2x" style="margin-bottom:12px;opacity:.3"></i>
+          <p>Vista Timeline — Proximamente</p>
+          <p style="font-size:12px;opacity:.5;margin-top:6px">
+            Aqui se mostrara un diagrama de Gantt con ocupacion por habitacion
+          </p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- ════════════════════════════════════════════════════════
+     MODAL NUEVA RESERVA
+════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalNueva">
+  <div class="modal" style="width:580px">
+    <div class="modal-header">
+      <h3>Nueva Reserva</h3>
+      <button class="btn btn-ghost btn-sm" onclick="cerrarModal('modalNueva')">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <!-- PASOS -->
+      <div class="pasos">
+        <div class="paso activo" id="paso1Lbl">1. Habitacion</div>
+        <div class="paso"        id="paso2Lbl">2. Huesped</div>
+        <div class="paso"        id="paso3Lbl">3. Confirmar</div>
+      </div>
+
+      <!-- PASO 1: Habitacion + fechas -->
+      <div class="paso-content activo" id="paso1">
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label>Fecha de Entrada</label>
+            <input type="date" class="form-control" id="nFechaEntrada" onchange="onFechaChange()">
+          </div>
+          <div class="form-group">
+            <label>Fecha de Salida</label>
+            <input type="date" class="form-control" id="nFechaSalida" onchange="onFechaChange()">
+          </div>
+        </div>
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label>Adultos</label>
+            <input type="number" class="form-control" id="nAdultos" value="1" min="1" max="6">
+          </div>
+          <div class="form-group">
+            <label>Ninos</label>
+            <input type="number" class="form-control" id="nNinos" value="0" min="0" max="4">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Canal de Reserva</label>
+          <select class="form-control" id="nCanal">
+            <option value="DIRECTO">Directo / Recepcion</option>
+            <option value="TELEFONO">Telefono</option>
+            <option value="WEB">Web Propia</option>
+            <option value="BOOKING">Booking.com</option>
+            <option value="AIRBNB">Airbnb</option>
+            <option value="AGENCIA">Agencia</option>
+            <option value="WALK_IN">Walk-in</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Habitacion Disponible</label>
+          <select class="form-control" id="nHabitacion" onchange="onHabChange()">
+            <option value="">-- Seleccione fechas primero --</option>
+          </select>
+        </div>
+        <div id="cotizacionBox" style="display:none" class="cotizacion-box">
+          <div class="cot-row"><span>Precio por noche</span><span id="cPrecioNoche">—</span></div>
+          <div class="cot-row"><span id="cNochesLbl">Noches</span><span id="cSubtotal">—</span></div>
+          <div class="cot-row total"><span>Total</span><span id="cTotal">—</span></div>
+          <div class="cot-igv" id="cIGVInfo"></div>
+        </div>
+      </div>
+
+      <!-- PASO 2: Huesped -->
+      <div class="paso-content" id="paso2">
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label>Tipo de Documento</label>
+            <select class="form-control" id="nTipoDoc" onchange="onTipoDocChange()">
+              <option value="DNI">DNI</option>
+              <option value="PASAPORTE">Pasaporte</option>
+              <option value="CE">Carnet Extranjeria</option>
+              <option value="RUC">RUC</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Numero de Documento</label>
+            <div style="display:flex;gap:6px">
+              <input type="text" class="form-control" id="nNumDoc" placeholder="12345678"
+                     maxlength="12" style="flex:1">
+              <button class="btn btn-primary btn-sm" onclick="buscarHuesped()">Buscar</button>
+            </div>
+          </div>
+        </div>
+        <div class="hsp-result" id="hspResult">
+          <div class="hsp-nom" id="hspNombre">—</div>
+          <div class="hsp-det" id="hspDetalle">—</div>
+        </div>
+        <div id="hspFormNuevo" style="display:none">
+          <div class="form-row cols-2" style="margin-top:12px">
+            <div class="form-group">
+              <label>Nombres</label>
+              <input type="text" class="form-control" id="nNombres" placeholder="Juan Carlos">
+            </div>
+            <div class="form-group">
+              <label>Apellidos</label>
+              <input type="text" class="form-control" id="nApellidos" placeholder="Quispe Mamani">
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" class="form-control" id="nEmail" placeholder="correo@ejemplo.com">
+            </div>
+            <div class="form-group">
+              <label>WhatsApp</label>
+              <input type="text" class="form-control" id="nWA" placeholder="984000001">
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label>Pais</label>
+              <input type="text" class="form-control" id="nPais" value="PERU">
+            </div>
+            <div class="form-group">
+              <label>Tipo IGV</label>
+              <select class="form-control" id="nTipoIGV">
+                <option value="GENERAL">General (18%)</option>
+                <option value="NACIONAL">Nacional (10.5%)</option>
+                <option value="EXONERADO">Exonerado (0%)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 3: Confirmar -->
+      <div class="paso-content" id="paso3">
+        <div id="resumenFinal" class="cotizacion-box" style="margin-bottom:14px"></div>
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label>Motivo de Viaje</label>
+            <select class="form-control" id="nMotivo">
+              <option value="">Sin especificar</option>
+              <option value="TURISMO">Turismo</option>
+              <option value="NEGOCIOS">Negocios</option>
+              <option value="SALUD">Salud</option>
+              <option value="ESTUDIO">Estudio</option>
+              <option value="FAMILIAR">Visita Familiar</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Descuento %</label>
+            <input type="number" class="form-control" id="nDescuento" value="0" min="0" max="50"
+                   oninput="recotizar()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notas del Huesped</label>
+          <textarea class="form-control" id="nNotas" rows="2"
+                    placeholder="Peticiones especiales..."></textarea>
+        </div>
+
+        <!-- ── PASARELA DE PAGO ───────────────────────────── -->
+        <div style="margin-top:16px">
+          <div style="font-size:12px;font-weight:600;color:var(--text-muted);
+               text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+            <i class="fa fa-credit-card" style="color:var(--accent);margin-right:6px"></i>
+            Pago / Anticipo al Reservar
+          </div>
+
+          <div class="pago-grid">
+            <div class="pago-card efectivo" data-met="EFECTIVO" onclick="selPago(this)">
+              <i class="fa fa-money-bill-wave"></i>
+              <div class="pago-nom">Efectivo</div>
+            </div>
+            <div class="pago-card tarjeta" data-met="TARJETA" onclick="selPago(this)">
+              <i class="fa fa-credit-card"></i>
+              <div class="pago-nom">Tarjeta POS</div>
+            </div>
+            <div class="pago-card qr" data-met="YAPE" onclick="selPago(this)">
+              <i class="fa fa-qrcode"></i>
+              <div class="pago-nom">Yape / Plin</div>
+            </div>
+            <div class="pago-card trans" data-met="TRANSFERENCIA" onclick="selPago(this)">
+              <i class="fa fa-building-columns"></i>
+              <div class="pago-nom">Transferencia</div>
+            </div>
+            <div class="pago-card culqi" data-met="CULQI" onclick="selPago(this)">
+              <i class="fa fa-globe"></i>
+              <div class="pago-nom">Culqi (Online)</div>
+            </div>
+            <div class="pago-card sin-pago selected" data-met="" onclick="selPago(this)">
+              <i class="fa fa-clock"></i>
+              <div class="pago-nom">Sin pago ahora</div>
+            </div>
+          </div>
+
+          <!-- Efectivo -->
+          <div class="pago-detalle" id="pd-EFECTIVO">
+            <div class="anticipo-row">
+              <label><i class="fa fa-coins"></i> Anticipo S/</label>
+              <input type="number" id="pAnticipo" step="0.01" min="0" placeholder="0.00"
+                     oninput="actualizarSaldo()">
+            </div>
+            <div id="pdSaldo" style="font-size:12px;color:var(--text-muted);
+                 text-align:right;margin-top:6px"></div>
+          </div>
+
+          <!-- Tarjeta POS -->
+          <div class="pago-detalle" id="pd-TARJETA">
+            <div class="form-row cols-2">
+              <div class="form-group" style="margin-bottom:10px">
+                <label>Tipo de Tarjeta</label>
+                <select class="form-control" id="pTipoTarjeta">
+                  <option value="VISA">Visa</option>
+                  <option value="MASTERCARD">Mastercard</option>
+                  <option value="AMEX">American Express</option>
+                  <option value="DINERS">Diners</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:10px">
+                <label>Ultimos 4 digitos</label>
+                <input type="text" class="form-control" id="pUltimos4"
+                       maxlength="4" placeholder="1234">
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>Codigo de Aprobacion</label>
+              <input type="text" class="form-control" id="pCodAprobacion" placeholder="Ej: 123456">
+            </div>
+            <div class="anticipo-row" style="margin-top:10px">
+              <label><i class="fa fa-credit-card"></i> Monto Cobrado S/</label>
+              <input type="number" id="pAnticipo" step="0.01" min="0" placeholder="0.00"
+                     oninput="actualizarSaldo()">
+            </div>
+            <div id="pdSaldo" style="font-size:12px;color:var(--text-muted);
+                 text-align:right;margin-top:6px"></div>
+          </div>
+
+          <!-- Yape / Plin -->
+          <div class="pago-detalle" id="pd-YAPE">
+            <div class="form-row cols-2">
+              <div class="form-group" style="margin-bottom:10px">
+                <label>Plataforma</label>
+                <select class="form-control" id="pQRTipo">
+                  <option value="YAPE">Yape</option>
+                  <option value="PLIN">Plin</option>
+                  <option value="LUKITA">Lukita</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:10px">
+                <label>N° de Operacion</label>
+                <input type="text" class="form-control" id="pNumOpQR" placeholder="Ej: 12345678">
+              </div>
+            </div>
+            <div class="anticipo-row">
+              <label><i class="fa fa-qrcode"></i> Monto Cobrado S/</label>
+              <input type="number" id="pAnticipo" step="0.01" min="0" placeholder="0.00"
+                     oninput="actualizarSaldo()">
+            </div>
+            <div id="pdSaldo" style="font-size:12px;color:var(--text-muted);
+                 text-align:right;margin-top:6px"></div>
+          </div>
+
+          <!-- Transferencia -->
+          <div class="pago-detalle" id="pd-TRANSFERENCIA">
+            <div class="form-row cols-2">
+              <div class="form-group" style="margin-bottom:10px">
+                <label>Banco</label>
+                <select class="form-control" id="pBanco">
+                  <option value="BCP">BCP</option>
+                  <option value="BBVA">BBVA</option>
+                  <option value="INTERBANK">Interbank</option>
+                  <option value="SCOTIABANK">Scotiabank</option>
+                  <option value="BN">Banco de la Nacion</option>
+                  <option value="BANBIF">BanBif</option>
+                  <option value="OTRO">Otro</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:10px">
+                <label>N° de Operacion</label>
+                <input type="text" class="form-control" id="pNumOpTrans" placeholder="Ej: 123456789">
+              </div>
+            </div>
+            <div class="anticipo-row">
+              <label><i class="fa fa-building-columns"></i> Monto Transferido S/</label>
+              <input type="number" id="pAnticipo" step="0.01" min="0" placeholder="0.00"
+                     oninput="actualizarSaldo()">
+            </div>
+            <div id="pdSaldo" style="font-size:12px;color:var(--text-muted);
+                 text-align:right;margin-top:6px"></div>
+          </div>
+
+          <!-- Culqi Online -->
+          <div class="pago-detalle" id="pd-CULQI">
+            <div class="culqi-notice">
+              <i class="fa fa-circle-info" style="margin-top:1px;flex-shrink:0"></i>
+              <div>
+                El cliente recibirá un enlace de pago de <strong>Culqi</strong>.
+                El sistema registrará la reserva como <em>Pendiente de Pago</em>
+                y se confirmará automáticamente al recibir el webhook de Culqi.
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:12px;margin-bottom:0">
+              <label>Email para enviar enlace de pago</label>
+              <input type="email" class="form-control" id="pEmailCulqi"
+                     placeholder="cliente@email.com">
+            </div>
+          </div>
+        </div>
+        <!-- ── FIN PASARELAS ─────────────────────────────────── -->
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btnAtras" onclick="pasoAtras()" style="display:none">
+        <i class="fa fa-arrow-left"></i> Atras
+      </button>
+      <button class="btn btn-ghost" onclick="cerrarModal('modalNueva')">Cancelar</button>
+      <button class="btn btn-primary" id="btnSiguiente" onclick="pasoSiguiente()">
+        Siguiente <i class="fa fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     MODAL DETALLE RESERVA
+════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalDetalle">
+  <div class="modal" style="width:640px">
+    <div class="modal-header">
+      <div>
+        <h3 id="dtCodigo">...</h3>
+        <div id="dtEstadoBadge" style="margin-top:4px"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="cerrarModal('modalDetalle')">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" id="dtBody">
+      <div style="text-align:center;padding:30px;color:rgba(255,255,255,.2)">
+        <i class="fa fa-spinner fa-spin"></i> Cargando...
+      </div>
+    </div>
+    <div class="modal-footer" id="dtAcciones">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalDetalle')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script>
+initLayout('reservas');
+
+// ── ESTADO ──────────────────────────────────────────────────
+let calMes  = new Date().getMonth() + 1;
+let calAnio = new Date().getFullYear();
+let reservasCalendario = [];
+let pasoActual  = 1;
+let habSelData  = null;
+let hspData     = { id: null, nuevo: false };
+
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+               'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// ── TABS ────────────────────────────────────────────────────
+function cambiarTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'calendario') cargarCalendario();
+  else if (tab === 'lista') cargarLista();
+}
+
+// ── CALENDARIO ──────────────────────────────────────────────
+function cambiarMes(d) {
+  calMes += d;
+  if (calMes > 12) { calMes = 1; calAnio++; }
+  if (calMes < 1)  { calMes = 12; calAnio--; }
+  cargarCalendario();
+}
+
+async function cargarCalendario() {
+  document.getElementById('calTitulo').textContent = MESES[calMes-1] + ' ' + calAnio;
+  try {
+    const res = await api.get('/reservas/calendario?mes=' + calMes + '&anio=' + calAnio);
+    reservasCalendario = res.data || [];
+    renderCalendario();
+    cargarKPIs();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function renderCalendario() {
+  const grid = document.getElementById('calGrid');
+  const hoy  = new Date();
+  const primer = new Date(calAnio, calMes-1, 1);
+  let diaSemana = primer.getDay();
+  diaSemana = diaSemana === 0 ? 6 : diaSemana - 1;
+
+  const diasEnMes = new Date(calAnio, calMes, 0).getDate();
+  const diasMesAnt = new Date(calAnio, calMes-1, 0).getDate();
+  const totalCeldas = Math.ceil((diaSemana + diasEnMes) / 7) * 7;
+
+  let html = '';
+  for (let i = 0; i < totalCeldas; i++) {
+    let dia, mes, anio, otroMes = false;
+    if (i < diaSemana) {
+      dia = diasMesAnt - diaSemana + i + 1;
+      mes = calMes - 1 || 12;
+      anio = mes === 12 ? calAnio - 1 : calAnio;
+      otroMes = true;
+    } else if (i >= diaSemana + diasEnMes) {
+      dia = i - diaSemana - diasEnMes + 1;
+      mes = calMes + 1 > 12 ? 1 : calMes + 1;
+      anio = calMes + 1 > 12 ? calAnio + 1 : calAnio;
+      otroMes = true;
+    } else {
+      dia = i - diaSemana + 1;
+      mes = calMes; anio = calAnio;
+    }
+
+    const fechaStr = `${anio}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+    const esHoy = (dia===hoy.getDate() && mes===hoy.getMonth()+1 && anio===hoy.getFullYear());
+    const rsDia = reservasCalendario.filter(r => r.entrada === fechaStr);
+
+    let evHtml = rsDia.slice(0,3).map(r =>
+      `<div class="cal-evento ev-${r.estado}" onclick="event.stopPropagation();verDetalle(${r.id})"
+            title="${r.huesped}">
+        ${r.habitacion} · ${r.huesped.split(' ')[0]}
+      </div>`
+    ).join('');
+    if (rsDia.length > 3)
+      evHtml += `<div style="font-size:10px;color:rgba(255,255,255,.3);padding:2px 4px">
+        +${rsDia.length-3} mas</div>`;
+
+    html += `<div class="cal-dia${otroMes?' otro-mes':''}${esHoy?' hoy':''}"
+              onclick="diaClick('${fechaStr}')">
+      <div class="cal-num">${dia}</div>${evHtml}
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function diaClick(fecha) {
+  document.getElementById('nFechaEntrada').value = fecha;
+  const d = new Date(fecha);
+  d.setDate(d.getDate() + 1);
+  document.getElementById('nFechaSalida').value = d.toISOString().split('T')[0];
+  abrirModalNueva();
+}
+
+async function cargarKPIs() {
+  try {
+    const [ci, co] = await Promise.all([
+      api.get('/reservas/checkins-hoy'),
+      api.get('/reservas/checkouts-hoy')
+    ]);
+    const ci_n = Array.isArray(ci.data) ? ci.data.length : (ci.data || 0);
+    const co_n = Array.isArray(co.data) ? co.data.length : (co.data || 0);
+    document.getElementById('lblCheckinsHoy').textContent  = ci_n;
+    document.getElementById('lblCheckoutsHoy').textContent = co_n;
+    document.getElementById('kpiCheckins').textContent  = ci_n;
+    document.getElementById('kpiCheckouts').textContent = co_n;
+  } catch(e) {}
+  try {
+    const res = await api.get('/reservas?estado=PENDIENTE&limit=1');
+    document.getElementById('kpiPendientes').textContent = res.total || '—';
+  } catch(e) {}
+  try {
+    const hoy = new Date().toISOString().split('T')[0];
+    const res = await api.get('/reservas?desde=' + hoy + '&hasta=' + hoy + '&limit=1');
+    document.getElementById('kpiTotal').textContent = res.total || res.data?.length || '—';
+  } catch(e) {}
+}
+
+// ── LISTA ────────────────────────────────────────────────────
+let timerLista;
+async function cargarLista() {
+  clearTimeout(timerLista);
+  timerLista = setTimeout(async () => {
+    const q      = document.getElementById('fQ').value;
+    const estado = document.getElementById('fEstado').value;
+    const desde  = document.getElementById('fDesde').value;
+    const hasta  = document.getElementById('fHasta').value;
+    const body   = document.getElementById('tablaBody');
+    body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:rgba(255,255,255,.2)"><i class="fa fa-spinner fa-spin"></i></td></tr>';
+    try {
+      const res = await api.get(
+        `/reservas?q=${encodeURIComponent(q)}&estado=${estado}&desde=${desde}&hasta=${hasta}&limit=50`);
+      if (!res.data || !res.data.length) {
+        body.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:30px;color:rgba(255,255,255,.2)">
+          <i class="fa fa-search" style="display:block;margin-bottom:8px;font-size:20px"></i>Sin resultados</td></tr>`;
+        return;
+      }
+      body.innerHTML = res.data.map(r => `
+        <tr>
+          <td style="font-family:monospace;font-size:12px;color:#5DADE2">${r.codigo}</td>
+          <td>
+            <div style="font-weight:500">${r.huesped}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.3)">${r.documento}</div>
+          </td>
+          <td>
+            <div>${r.habitacion}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.3)">${r.tipoHab}</div>
+          </td>
+          <td>${fFecha(r.entrada)}</td>
+          <td>${fFecha(r.salida)}</td>
+          <td style="text-align:center">${r.noches}</td>
+          <td>${fMoneda(r.total)}</td>
+          <td style="color:${r.saldo>0?'#E74C3C':'#27AE60'};font-weight:600">${fMoneda(r.saldo)}</td>
+          <td>${badgeEstado(r.estado)}</td>
+          <td><span class="badge badge-blue">${r.canal}</span></td>
+          <td>
+            <button class="btn btn-ghost btn-sm" onclick="verDetalle(${r.id})">
+              <i class="fa fa-eye"></i>
+            </button>
+          </td>
+        </tr>`).join('');
+    } catch(e) { toast(e.message, 'error'); }
+  }, 300);
+}
+
+function badgeEstado(estado) {
+  const MAP = {
+    PENDIENTE: 'badge-yellow', CONFIRMADA: 'badge-blue',
+    CHECKIN: 'badge-green', CHECKOUT: 'badge-gray',
+    CANCELADA: 'badge-red', NO_SHOW: 'badge-purple'
+  };
+  return `<span class="badge ${MAP[estado]||'badge-gray'}">${estado}</span>`;
+}
+
+// ── DETALLE RESERVA ─────────────────────────────────────────
+async function verDetalle(id) {
+  document.getElementById('dtBody').innerHTML =
+    '<div style="text-align:center;padding:30px;color:rgba(255,255,255,.2)"><i class="fa fa-spinner fa-spin"></i></div>';
+  document.getElementById('dtAcciones').innerHTML =
+    '<button class="btn btn-ghost" onclick="cerrarModal(\'modalDetalle\')">Cerrar</button>';
+  document.getElementById('modalDetalle').classList.add('open');
+
+  try {
+    const res = await api.get('/reservas/' + id);
+    const r = res.data;
+
+    document.getElementById('dtCodigo').textContent = r.codigo;
+    document.getElementById('dtEstadoBadge').innerHTML =
+      `${badgeEstado(r.estado)} <span class="badge badge-gray" style="margin-left:4px">${r.canal}</span>`;
+
+    document.getElementById('dtBody').innerHTML = `
+      <div class="det-grid-2">
+        <div>
+          <div class="det-lbl">Huesped</div>
+          <div style="font-weight:600;font-size:15px">${r.huesped.nombres} ${r.huesped.apellidos}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.4)">${r.huesped.documento}</div>
+          ${r.huesped.whatsapp ? `<div style="font-size:12px;color:#25D366;margin-top:2px"><i class="fa-brands fa-whatsapp"></i> ${r.huesped.whatsapp}</div>` : ''}
+        </div>
+        <div>
+          <div class="det-lbl">Habitacion</div>
+          <div style="font-weight:700;font-size:22px">${r.habitacion}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.4)">${r.tipo} · ${r.piso}</div>
+        </div>
+      </div>
+      <div class="det-grid-4">
+        <div class="det-stat">
+          <div class="det-stat-v">${r.noches}</div>
+          <div class="det-stat-l">Noches</div>
+        </div>
+        <div class="det-stat">
+          <div class="det-stat-v" style="font-size:13px">${fFecha(r.fechaEntrada)}</div>
+          <div class="det-stat-l">Entrada</div>
+        </div>
+        <div class="det-stat">
+          <div class="det-stat-v" style="font-size:13px">${fFecha(r.fechaSalida)}</div>
+          <div class="det-stat-l">Salida</div>
+        </div>
+        <div class="det-stat">
+          <div class="det-stat-v" style="font-size:13px">${r.numAdultos} adultos</div>
+          <div class="det-stat-l">${r.numNinos} ninos</div>
+        </div>
+      </div>
+      <div class="cotizacion-box">
+        <div class="cot-row"><span>Precio noche</span><span>${fMoneda(r.precioNoche)}</span></div>
+        <div class="cot-row"><span>${r.noches} noches</span><span>${fMoneda(r.subtotal)}</span></div>
+        ${r.descuentoMonto>0 ? `<div class="cot-row"><span>Descuento ${r.descuentoPct}%</span><span style="color:#E74C3C">-${fMoneda(r.descuentoMonto)}</span></div>` : ''}
+        ${r.totalServicios>0 ? `<div class="cot-row"><span>Servicios</span><span>${fMoneda(r.totalServicios)}</span></div>` : ''}
+        <div class="cot-row total"><span>Total</span><span>${fMoneda(r.total)}</span></div>
+        <div class="cot-row"><span>Pagado</span><span style="color:#27AE60">${fMoneda(r.totalPagado)}</span></div>
+        <div class="cot-row"><span>Saldo</span><span style="color:${r.saldo>0?'#E74C3C':'#27AE60'}">${fMoneda(r.saldo)}</span></div>
+        <div class="cot-igv">IGV: ${r.tipoIGV}</div>
+      </div>
+      ${r.servicios && r.servicios.length ? `
+      <div style="margin-top:12px">
+        <div class="det-lbl">Servicios Cargados</div>
+        ${r.servicios.map(s=>`<div style="display:flex;justify-content:space-between;font-size:12px;
+          padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+          <span>${s.nombre} x${s.cantidad}</span><span>${fMoneda(s.subtotal)}</span>
+        </div>`).join('')}
+      </div>` : ''}
+    `;
+
+    // Botones de accion segun estado
+    const btns = ['<button class="btn btn-ghost" onclick="cerrarModal(\'modalDetalle\')">Cerrar</button>'];
+    if (r.estado === 'PENDIENTE')
+      btns.push(`<button class="btn btn-primary" onclick="accionReserva('confirmar',${id})"><i class="fa fa-check"></i> Confirmar</button>`);
+    if (['PENDIENTE','CONFIRMADA'].includes(r.estado))
+      btns.push(`<button class="btn btn-success" onclick="accionReserva('checkin',${id})"><i class="fa fa-sign-in-alt"></i> Check-in</button>`);
+    if (r.estado === 'CHECKIN')
+      btns.push(`<button class="btn btn-warning" onclick="accionReserva('checkout',${id})"><i class="fa fa-sign-out-alt"></i> Check-out</button>`);
+    if (!['CANCELADA','CHECKOUT'].includes(r.estado))
+      btns.push(`<button class="btn btn-danger" onclick="accionReserva('cancelar',${id})"><i class="fa fa-ban"></i> Cancelar</button>`);
+    document.getElementById('dtAcciones').innerHTML = btns.join('');
+
+  } catch(e) {
+    document.getElementById('dtBody').innerHTML =
+      `<div style="text-align:center;padding:30px;color:#E74C3C"><i class="fa fa-exclamation-triangle"></i> ${e.message}</div>`;
+  }
+}
+
+async function accionReserva(accion, id) {
+  if (accion === 'cancelar') {
+    const motivo = prompt('Motivo de cancelacion:');
+    if (motivo === null) return;
+    try {
+      await api.post('/reservas/'+id+'/cancelar', { motivo });
+      toast('Reserva cancelada', 'success');
+    } catch(e) { toast(e.message, 'error'); return; }
+  } else {
+    if (!confirm('Confirmar accion: ' + accion + '?')) return;
+    try {
+      await api.post('/reservas/'+id+'/'+accion, {});
+      toast('Accion realizada correctamente', 'success');
+    } catch(e) { toast(e.message, 'error'); return; }
+  }
+  cerrarModal('modalDetalle');
+  cargarCalendario();
+}
+
+// ── NUEVA RESERVA ────────────────────────────────────────────
+function abrirModalNueva() {
+  pasoActual = 1;
+  hspData    = { id: null, nuevo: false };
+  habSelData = null;
+  actualizarPasos();
+  document.getElementById('cotizacionBox').style.display = 'none';
+  document.getElementById('hspResult').style.display     = 'none';
+  document.getElementById('hspFormNuevo').style.display  = 'none';
+  document.getElementById('modalNueva').classList.add('open');
+  const hoy    = new Date().toISOString().split('T')[0];
+  const manana = new Date(Date.now()+86400000).toISOString().split('T')[0];
+  if (!document.getElementById('nFechaEntrada').value) {
+    document.getElementById('nFechaEntrada').value = hoy;
+    document.getElementById('nFechaSalida').value  = manana;
+    onFechaChange();
+  }
+}
+
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function actualizarPasos() {
+  for (let i = 1; i <= 3; i++) {
+    const lbl = document.getElementById('paso'+i+'Lbl');
+    const cnt = document.getElementById('paso'+i);
+    lbl.className = 'paso' + (i < pasoActual ? ' done' : i === pasoActual ? ' activo' : '');
+    cnt.className = 'paso-content' + (i === pasoActual ? ' activo' : '');
+  }
+  document.getElementById('btnAtras').style.display     = pasoActual > 1 ? '' : 'none';
+  document.getElementById('btnSiguiente').innerHTML     =
+    pasoActual < 3
+      ? 'Siguiente <i class="fa fa-arrow-right"></i>'
+      : '<i class="fa fa-check"></i> Crear Reserva';
+}
+
+async function pasoSiguiente() {
+  if (pasoActual === 1) {
+    if (!document.getElementById('nHabitacion').value ||
+        !document.getElementById('nFechaEntrada').value ||
+        !document.getElementById('nFechaSalida').value) {
+      toast('Seleccione habitacion y fechas', 'warning'); return;
+    }
+    pasoActual = 2;
+  } else if (pasoActual === 2) {
+    if (!hspData.id && !hspData.nuevo) {
+      toast('Busque o ingrese los datos del huesped', 'warning'); return;
+    }
+    if (hspData.nuevo) {
+      const n = document.getElementById('nNombres').value.trim();
+      const a = document.getElementById('nApellidos').value.trim();
+      if (!n || !a) { toast('Ingrese nombres y apellidos del huesped', 'warning'); return; }
+    }
+    buildResumen();
+    pasoActual = 3;
+  } else if (pasoActual === 3) {
+    await crearReserva();
+    return;
+  }
+  actualizarPasos();
+}
+
+function pasoAtras() {
+  if (pasoActual > 1) { pasoActual--; actualizarPasos(); }
+}
+
+async function onFechaChange() {
+  const entrada = document.getElementById('nFechaEntrada').value;
+  const salida  = document.getElementById('nFechaSalida').value;
+  if (!entrada || !salida || entrada >= salida) return;
+  try {
+    const res = await api.get(`/habitaciones/disponibles?entrada=${entrada}&salida=${salida}`);
+    const sel = document.getElementById('nHabitacion');
+    sel.innerHTML = res.data && res.data.length
+      ? res.data.map(h =>
+          `<option value="${h.idHabitacion}" data-precio="${h.precioBase}" data-tipo="${h.tipo}">
+            Hab ${h.numero} — ${h.tipo} — S/ ${h.precioBase}/noche (${h.piso})
+          </option>`).join('')
+      : '<option value="">Sin habitaciones disponibles</option>';
+    onHabChange();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function onHabChange() {
+  const sel = document.getElementById('nHabitacion');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) { document.getElementById('cotizacionBox').style.display='none'; return; }
+  habSelData = { id: parseInt(opt.value), precio: parseFloat(opt.dataset.precio), tipo: opt.dataset.tipo };
+  recotizar();
+}
+
+async function recotizar() {
+  if (!habSelData) return;
+  const entrada   = document.getElementById('nFechaEntrada').value;
+  const salida    = document.getElementById('nFechaSalida').value;
+  const descuento = parseFloat(document.getElementById('nDescuento')?.value || 0);
+  const tipoIGV   = document.getElementById('nTipoIGV')?.value || 'GENERAL';
+  try {
+    const res = await api.post('/reservas/cotizar', {
+      idHabitacion: habSelData.id,
+      fechaEntrada: entrada, fechaSalida: salida,
+      tipoIGV, descuentoPct: descuento, idTarifa: 0
+    });
+    const c = res.data;
+    document.getElementById('cotizacionBox').style.display = 'block';
+    document.getElementById('cPrecioNoche').textContent = fMoneda(c.precioNoche);
+    document.getElementById('cNochesLbl').textContent   = c.noches + ' noches';
+    document.getElementById('cSubtotal').textContent    = fMoneda(c.subtotal);
+    document.getElementById('cTotal').textContent       = fMoneda(c.total);
+    document.getElementById('cIGVInfo').textContent     =
+      `IGV ${c.tipoIGV} (${c.tasaIGV}%): S/ ${c.igvMonto.toFixed(2)} | Base: ${fMoneda(c.baseImponible)}`;
+    habSelData.cotizacion = c;
+  } catch(e) {}
+}
+
+async function buscarHuesped() {
+  const tipoDoc = document.getElementById('nTipoDoc').value;
+  const numDoc  = document.getElementById('nNumDoc').value.trim();
+  if (!numDoc) { toast('Ingrese numero de documento', 'warning'); return; }
+
+  const result   = document.getElementById('hspResult');
+  const formNuevo= document.getElementById('hspFormNuevo');
+
+  if (tipoDoc === 'DNI' && numDoc.length === 8) {
+    try {
+      const res = await api.get('/huespedes/reniec?dni=' + numDoc);
+      const d = res.data;
+      result.style.display = 'block';
+      document.getElementById('hspNombre').textContent = d.nombres + ' ' + d.apellidos;
+      document.getElementById('hspDetalle').textContent =
+        (d.fuente === 'LOCAL' ? 'Huesped registrado' : 'Encontrado en RENIEC') + ' · DNI ' + numDoc;
+      result.className = 'hsp-result' + (d.fuente==='LOCAL' ? ' existe' : '');
+      if (d.fuente === 'LOCAL') {
+        hspData = { id: d.idHuesped, nuevo: false };
+        formNuevo.style.display = 'none';
+      } else {
+        hspData = { id: null, nuevo: true };
+        document.getElementById('nNombres').value   = d.nombres;
+        document.getElementById('nApellidos').value = d.apellidos;
+        formNuevo.style.display = 'block';
+      }
+      if (tipoDoc === 'PASAPORTE')
+        document.getElementById('nTipoIGV').value = 'EXONERADO';
+      else if (tipoDoc === 'DNI')
+        document.getElementById('nTipoIGV').value = 'NACIONAL';
+    } catch(e) {
+      // La consulta automatica puede fallar (sin token, sin internet, DNI no
+      // hallado). El hotel NO se puede frenar por eso: se avisa y se abre el
+      // formulario manual con el documento ya cargado para seguir a mano.
+      toast(e.message, 'warning');
+      hspData = { id: null, nuevo: true };
+      result.style.display = 'none';
+      document.getElementById('nNombres').value   = '';
+      document.getElementById('nApellidos').value = '';
+      document.getElementById('nTipoIGV').value   = 'NACIONAL';
+      formNuevo.style.display = 'block';
+      document.getElementById('nNombres').focus();
+    }
+  } else {
+    try {
+      const res = await api.get('/huespedes?q=' + encodeURIComponent(numDoc) + '&limit=5');
+      if (res.data && res.data.length > 0) {
+        const h = res.data[0];
+        result.style.display = 'block';
+        result.className = 'hsp-result existe';
+        document.getElementById('hspNombre').textContent = h.nombre;
+        document.getElementById('hspDetalle').textContent = h.documento;
+        hspData = { id: h.idHuesped, nuevo: false };
+        formNuevo.style.display = 'none';
+      } else {
+        hspData = { id: null, nuevo: true };
+        result.style.display = 'none';
+        formNuevo.style.display = 'block';
+      }
+    } catch(e) { toast(e.message, 'error'); }
+  }
+}
+
+function onTipoDocChange() {
+  const tipo = document.getElementById('nTipoDoc').value;
+  const sel  = document.getElementById('nTipoIGV');
+  if (!sel) return;
+  if (tipo === 'PASAPORTE') sel.value = 'EXONERADO';
+  else if (tipo === 'DNI')  sel.value = 'NACIONAL';
+}
+
+function buildResumen() {
+  const c = habSelData?.cotizacion;
+  if (!c) return;
+  const sel = document.getElementById('nHabitacion');
+  const opt = sel.options[sel.selectedIndex];
+  const hsp = hspData.nuevo
+    ? (document.getElementById('nNombres').value + ' ' + document.getElementById('nApellidos').value)
+    : (document.getElementById('hspNombre')?.textContent || '');
+  document.getElementById('resumenFinal').innerHTML = `
+    <div class="cot-row"><span>Habitacion</span><strong>${opt?.text.split('—')[0].trim()}</strong></div>
+    <div class="cot-row"><span>Huesped</span><strong>${hsp}</strong></div>
+    <div class="cot-row"><span>Entrada</span><strong>${fFecha(document.getElementById('nFechaEntrada').value)}</strong></div>
+    <div class="cot-row"><span>Salida</span><strong>${fFecha(document.getElementById('nFechaSalida').value)}</strong></div>
+    <div class="cot-row"><span>${c.noches} noches × ${fMoneda(c.precioNoche)}</span><strong>${fMoneda(c.subtotal)}</strong></div>
+    ${c.descuento>0 ? `<div class="cot-row"><span>Descuento</span><strong style="color:#E74C3C">-${fMoneda(c.descuento)}</strong></div>` : ''}
+    <div class="cot-row total"><span>TOTAL</span><strong>${fMoneda(c.total)}</strong></div>
+    <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">
+      IGV ${c.tipoIGV} ${c.tasaIGV}% = S/ ${c.igvMonto?.toFixed(2)}
+    </div>
+  `;
+}
+
+async function crearReserva() {
+  const btn = document.getElementById('btnSiguiente');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creando...';
+
+  try {
+    let idHuesped = hspData.id;
+    if (hspData.nuevo) {
+      const respH = await api.post('/huespedes', {
+        tipoDoc:   document.getElementById('nTipoDoc').value,
+        numeroDoc: document.getElementById('nNumDoc').value,
+        nombres:   document.getElementById('nNombres').value,
+        apellidos: document.getElementById('nApellidos').value,
+        email:     document.getElementById('nEmail').value,
+        whatsapp:  document.getElementById('nWA').value,
+        pais:      document.getElementById('nPais').value,
+        tipoIGV:   document.getElementById('nTipoIGV').value,
+      });
+      idHuesped = respH.data.idHuesped;
+    }
+
+    const c = habSelData.cotizacion;
+    const pago = getPagoData();
+    await api.post('/reservas', {
+      idHabitacion: habSelData.id,
+      idHuesped,
+      fechaEntrada: document.getElementById('nFechaEntrada').value,
+      fechaSalida:  document.getElementById('nFechaSalida').value,
+      numAdultos:   parseInt(document.getElementById('nAdultos').value),
+      numNinos:     parseInt(document.getElementById('nNinos').value),
+      canal:        document.getElementById('nCanal').value,
+      tipoIGV:      c.tipoIGV,
+      descuentoPct: parseFloat(document.getElementById('nDescuento').value || 0),
+      motivoViaje:  document.getElementById('nMotivo').value,
+      notasCliente: document.getElementById('nNotas').value,
+      // Pasarela de pago
+      metodoPago:   pago.metodoPago   || '',
+      montoAnticipo:pago.montoAnticipo || 0,
+      refPago:      pago.numOp || pago.codAprobacion || '',
+      tipoTarjeta:  pago.tipoTarjeta  || '',
+      ultimos4:     pago.ultimos4     || '',
+      banco:        pago.banco        || '',
+      emailCulqi:   pago.emailCulqi   || '',
+      estadoPago:   pago.estadoPago   || (pago.metodoPago ? 'PAGADO' : 'PENDIENTE'),
+    });
+
+    toast('Reserva creada exitosamente', 'success');
+    cerrarModal('modalNueva');
+    cargarCalendario();
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    actualizarPasos();
+  }
+}
+
+// ── PASARELAS DE PAGO ────────────────────────────────────────
+let metodoPagoSel = ''; // vacío = sin pago ahora
+
+function selPago(el) {
+  document.querySelectorAll('.pago-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  metodoPagoSel = el.dataset.met;
+  // Ocultar todos los detalles
+  document.querySelectorAll('.pago-detalle').forEach(d => d.classList.remove('visible'));
+  // Mostrar el del método seleccionado
+  if (metodoPagoSel) {
+    const pd = document.getElementById('pd-' + metodoPagoSel);
+    if (pd) pd.classList.add('visible');
+    // Pre-llenar anticipo con total de la reserva
+    const total = habSelData?.cotizacion?.total || 0;
+    const inp = pd?.querySelector('input[id="pAnticipo"]');
+    if (inp && !inp.value) inp.value = total.toFixed(2);
+    actualizarSaldo();
+  }
+}
+
+function actualizarSaldo() {
+  if (!metodoPagoSel || metodoPagoSel === 'CULQI') return;
+  const pd = document.getElementById('pd-' + metodoPagoSel);
+  if (!pd) return;
+  const inp   = pd.querySelector('input[id="pAnticipo"]');
+  const saldo = pd.querySelector('#pdSaldo');
+  if (!inp || !saldo) return;
+  const anticipo = parseFloat(inp.value || 0);
+  const total    = habSelData?.cotizacion?.total || 0;
+  const restante = total - anticipo;
+  if (restante > 0) {
+    saldo.innerHTML = `<span style="color:var(--yellow)">Saldo pendiente: ${fMoneda(restante)}</span>`;
+  } else if (restante < 0) {
+    saldo.innerHTML = `<span style="color:var(--red)">Excede el total por ${fMoneda(Math.abs(restante))}</span>`;
+  } else {
+    saldo.innerHTML = `<span style="color:var(--green)"><i class="fa fa-check"></i> Pago completo</span>`;
+  }
+}
+
+function getPagoData() {
+  if (!metodoPagoSel) return {};
+  const pd = document.getElementById('pd-' + metodoPagoSel);
+  const anticipo = parseFloat(pd?.querySelector('input[id="pAnticipo"]')?.value || 0);
+  const data = { metodoPago: metodoPagoSel, montoAnticipo: anticipo };
+  if (metodoPagoSel === 'TARJETA') {
+    data.tipoTarjeta   = document.getElementById('pTipoTarjeta')?.value;
+    data.ultimos4      = document.getElementById('pUltimos4')?.value;
+    data.codAprobacion = document.getElementById('pCodAprobacion')?.value;
+  } else if (metodoPagoSel === 'YAPE') {
+    data.subMetodo = document.getElementById('pQRTipo')?.value;
+    data.numOp     = document.getElementById('pNumOpQR')?.value;
+  } else if (metodoPagoSel === 'TRANSFERENCIA') {
+    data.banco  = document.getElementById('pBanco')?.value;
+    data.numOp  = document.getElementById('pNumOpTrans')?.value;
+  } else if (metodoPagoSel === 'CULQI') {
+    data.emailCulqi    = document.getElementById('pEmailCulqi')?.value;
+    data.montoAnticipo = 0;
+    data.estadoPago    = 'PENDIENTE_CULQI';
+  }
+  return data;
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+document.getElementById('fDesde').value = new Date().toISOString().split('T')[0];
+cargarCalendario();
+</script>
+</body>
+</html>

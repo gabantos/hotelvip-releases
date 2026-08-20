@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP &mdash; Recepcion</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* Layout especifico de recepcion: 2 columnas dentro de main-content */
+    .main-content { padding: 0; overflow: hidden; }
+
+    .recep-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* Panel izquierdo */
+    .recep-panel {
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* KPIs compactos en panel */
+    .recep-kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .recep-kpi {
+      background: var(--bg-body);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+    .recep-kpi .val { font-size: 24px; font-weight: 700; color: var(--text); }
+    .recep-kpi .lbl { font-size: 11px; color: var(--text-faint); margin-top: 1px; }
+
+    /* Panel title */
+    .panel-label {
+      font-size: 10px; font-weight: 600; letter-spacing: .08em;
+      color: var(--text-faint); text-transform: uppercase;
+      margin-bottom: 8px; margin-top: 4px;
+    }
+
+    /* Detalle habitacion */
+    .detalle-card {
+      background: var(--bg-body);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .detalle-card .d-numero { font-size: 26px; font-weight: 700; color: var(--text); }
+    .detalle-card .d-tipo   { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .d-estado-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; margin-top: 8px;
+    }
+    .d-row {
+      display: flex; justify-content: space-between;
+      margin-top: 9px; font-size: 12px; color: var(--text-muted);
+      border-top: 1px solid var(--border); padding-top: 9px;
+    }
+    .d-row strong { color: var(--text); }
+    .d-amenidades { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+    .d-amenidad {
+      font-size: 10px; padding: 2px 7px; border-radius: 20px;
+      background: rgba(255,255,255,.05); color: var(--text-muted);
+    }
+
+    /* Botones de accion */
+    .acciones { display: flex; flex-direction: column; gap: 5px; }
+    .btn-accion {
+      padding: 9px 12px; border-radius: var(--radius-sm);
+      font-size: 12px; font-weight: 600; border: none;
+      cursor: pointer; transition: opacity .15s; text-align: left;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .btn-accion:hover { opacity: .83; }
+    .btn-checkin  { background: #10b981; color: #fff; }
+    .btn-checkout { background: #ef4444; color: #fff; }
+    .btn-limpieza { background: #f59e0b; color: #fff; }
+    .btn-mantto   { background: #6b7280; color: #fff; }
+    .btn-bloquear { background: #374151; color: #9ca3af; }
+    .btn-reservar { background: #3b82f6; color: #fff; }
+
+    /* Panel derecho - mapa */
+    .recep-mapa {
+      overflow-y: auto;
+      padding: 20px;
+      background: var(--bg-body);
+    }
+    .mapa-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .mapa-header h2 { font-size: 15px; font-weight: 600; color: var(--text); }
+
+    /* Leyenda */
+    .leyenda {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 20px;
+    }
+    .ley-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; color: var(--text-muted);
+    }
+    .ley-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    /* Pisos */
+    .piso-section { margin-bottom: 24px; }
+    .piso-header {
+      font-size: 11px; font-weight: 600; color: var(--text-faint);
+      text-transform: uppercase; letter-spacing: .06em;
+      padding: 7px 12px; background: rgba(255,255,255,.03);
+      border-radius: var(--radius-sm); margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+    .hab-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    /* Cards habitacion */
+    .hab-card {
+      width: 116px; border-radius: var(--radius);
+      padding: 12px 10px; cursor: pointer;
+      transition: transform .13s, box-shadow .13s;
+      border: 2px solid transparent; user-select: none;
+      position: relative;
+    }
+    .hab-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.35); }
+    .hab-card.selected { border-color: #fff !important; box-shadow: 0 0 0 3px rgba(255,255,255,.12); }
+
+    .hab-numero { font-size: 22px; font-weight: 700; color: #fff; text-align: center; }
+    .hab-tipo   { font-size: 10px; color: rgba(255,255,255,.45); text-align: center; margin-top: 2px; }
+    .hab-precio { font-size: 10px; color: rgba(255,255,255,.3); text-align: center; margin-top: 3px; }
+    .hab-estado-dot {
+      position: absolute; top: 8px; right: 8px;
+      width: 7px; height: 7px; border-radius: 50%;
+    }
+
+    /* Estados */
+    .s-DISPONIBLE    { background: #0d3318; border-color: #10b981; }
+    .s-OCUPADA       { background: #3b1010; border-color: #ef4444; }
+    .s-RESERVADA     { background: #0d2244; border-color: #3b82f6; }
+    .s-LIMPIEZA      { background: #3d2200; border-color: #f59e0b; }
+    .s-MANTENIMIENTO { background: #1f2937; border-color: #6b7280; }
+    .s-BLOQUEADA     { background: #111827; border-color: #374151; }
+    .s-INSPECCION    { background: #2d1a4a; border-color: #8b5cf6; }
+
+    .dot-DISPONIBLE    { background: #10b981; }
+    .dot-OCUPADA       { background: #ef4444; }
+    .dot-RESERVADA     { background: #3b82f6; }
+    .dot-LIMPIEZA      { background: #f59e0b; }
+    .dot-MANTENIMIENTO { background: #6b7280; }
+    .dot-BLOQUEADA     { background: #4b5563; }
+    .dot-INSPECCION    { background: #8b5cf6; }
+
+    /* Sync bar */
+    .sync-bar {
+      position: fixed; bottom: 14px; right: 16px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 6px 12px;
+      font-size: 11px; color: var(--text-faint);
+      display: flex; align-items: center; gap: 7px;
+      z-index: 50;
+    }
+    .sync-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+    }
+    .sync-dot.offline { background: var(--red); animation: pulse 1s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    /* Loading */
+    .mapa-loading {
+      text-align: center; padding: 60px 20px;
+      color: var(--text-faint); font-size: 13px;
+    }
+
+    /* Modal confirmacion */
+    .modal-confirm .modal { max-width: 380px; }
+    .modal-confirm-msg {
+      font-size: 14px; color: var(--text);
+      text-align: center; padding: 8px 0 4px;
+    }
+    .modal-confirm-sub {
+      font-size: 12px; color: var(--text-muted);
+      text-align: center; margin-top: 6px;
+    }
+
+    /* Placeholder detalle */
+    .detalle-placeholder {
+      text-align: center; padding: 28px 10px;
+      color: var(--text-faint); font-size: 12px;
+    }
+    .detalle-placeholder i { font-size: 28px; margin-bottom: 8px; display: block; opacity: .25; }
+
+    @media (max-width: 900px) {
+      .recep-layout { grid-template-columns: 1fr; }
+      .recep-panel  { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-layout">
+  <!-- sidebar inyectado por layout.js -->
+  <div class="page-wrapper">
+    <!-- header inyectado por layout.js -->
+    <main class="main-content">
+
+      <div class="recep-layout">
+
+        <!-- PANEL IZQUIERDO -->
+        <div class="recep-panel">
+
+          <!-- KPIs -->
+          <div class="recep-kpi-grid">
+            <div class="recep-kpi">
+              <div class="val" id="kpiDisp">-</div>
+              <div class="lbl" style="color:var(--green)">Disponibles</div>
+            </div>
+            <div class="recep-kpi">
+              <div class="val" id="kpiOcup">-</div>
+              <div class="lbl" style="color:var(--red)">Ocupadas</div>
+            </div>
+            <div class="recep-kpi">
+              <div class="val" id="kpiRes">-</div>
+              <div class="lbl" style="color:var(--accent)">Reservadas</div>
+            </div>
+            <div class="recep-kpi">
+              <div class="val" id="kpiLimp">-</div>
+              <div class="lbl" style="color:var(--yellow)">Limpieza</div>
+            </div>
+          </div>
+
+          <div class="panel-label">Habitacion Seleccionada</div>
+          <div id="panelDetalle">
+            <div class="detalle-placeholder">
+              <i class="fa-solid fa-door-open"></i>
+              Seleccione una habitacion del mapa
+            </div>
+          </div>
+
+        </div>
+
+        <!-- PANEL DERECHO - MAPA -->
+        <div class="recep-mapa">
+          <div class="mapa-header">
+            <h2><i class="fa-solid fa-map" style="color:var(--accent);margin-right:6px"></i>Mapa de Habitaciones</h2>
+            <button class="btn btn-ghost btn-sm" onclick="cargarMapa()">
+              <i class="fa-solid fa-rotate-right"></i> Actualizar
+            </button>
+          </div>
+
+          <!-- Alerta reservas nuevas de canales web -->
+          <div id="channelAlert" style="display:none;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.28);border-radius:8px;padding:9px 14px;margin:10px 16px 0;display:flex;align-items:center;gap:10px;font-size:13px">
+            <i class="fa-solid fa-satellite-dish" style="color:var(--yellow);font-size:15px"></i>
+            <span id="channelAlertTxt" style="flex:1;color:var(--yellow);font-weight:600">Nuevas reservas en Canales</span>
+            <a href="channel.html" style="background:rgba(245,158,11,.2);color:var(--yellow);border:1px solid rgba(245,158,11,.3);padding:4px 12px;border-radius:5px;font-size:12px;font-weight:600;text-decoration:none">Ver &rarr;</a>
+          </div>
+
+          <div class="leyenda">
+            <div class="ley-item"><div class="ley-dot" style="background:#10b981"></div>Disponible</div>
+            <div class="ley-item"><div class="ley-dot" style="background:#ef4444"></div>Ocupada</div>
+            <div class="ley-item"><div class="ley-dot" style="background:#3b82f6"></div>Reservada</div>
+            <div class="ley-item"><div class="ley-dot" style="background:#f59e0b"></div>Limpieza</div>
+            <div class="ley-item"><div class="ley-dot" style="background:#6b7280"></div>Mantenimiento</div>
+            <div class="ley-item"><div class="ley-dot" style="background:#4b5563"></div>Bloqueada</div>
+            <div class="ley-item"><div class="ley-dot" style="background:#8b5cf6"></div>Inspeccion</div>
+          </div>
+
+          <div id="mapaContainer">
+            <div class="mapa-loading"><i class="fa-solid fa-spinner fa-spin" style="margin-right:8px"></i>Cargando habitaciones...</div>
+          </div>
+        </div>
+
+      </div><!-- /recep-layout -->
+
+    </main>
+  </div>
+</div>
+
+<!-- Sync bar -->
+<div class="sync-bar" id="syncBar">
+  <div class="sync-dot" id="syncDot"></div>
+  <span id="syncTxt">Conectado</span>
+</div>
+
+<!-- Modal de confirmacion -->
+<div class="modal-overlay modal-confirm" id="modalConfirm">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalConfirmTitulo">Confirmar accion</h3>
+      <button class="btn-close" onclick="cerrarModalConfirm()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-confirm-msg" id="modalConfirmMsg"></div>
+      <div class="modal-confirm-sub" id="modalConfirmSub"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModalConfirm()">Cancelar</button>
+      <button class="btn btn-primary" id="btnConfirmOk">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script>
+initLayout('recepcion');
+
+let habSeleccionada = null;
+let mapaData = [];
+let confirmCallback = null;
+
+/* ── Modal de confirmacion ── */
+function mostrarConfirm(titulo, msg, sub, onOk) {
+  document.getElementById('modalConfirmTitulo').textContent = titulo;
+  document.getElementById('modalConfirmMsg').textContent = msg;
+  document.getElementById('modalConfirmSub').textContent = sub || '';
+  confirmCallback = onOk;
+  document.getElementById('modalConfirm').classList.add('open');
+}
+function cerrarModalConfirm() {
+  document.getElementById('modalConfirm').classList.remove('open');
+  confirmCallback = null;
+}
+document.getElementById('btnConfirmOk').addEventListener('click', function() {
+  cerrarModalConfirm();
+  if (confirmCallback) confirmCallback();
+});
+// Cerrar al click fuera
+document.getElementById('modalConfirm').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalConfirm();
+});
+
+/* ── Mapa ── */
+async function cargarMapa() {
+  try {
+    const res = await api.get('/habitaciones/mapa');
+    mapaData = res.data;
+    renderMapa(mapaData);
+    actualizarKPIs(mapaData);
+    document.getElementById('syncDot').className = 'sync-dot';
+    document.getElementById('syncTxt').textContent = 'Act. ' +
+      new Date().toLocaleTimeString('es-PE', {hour:'2-digit', minute:'2-digit'});
+  } catch(e) {
+    document.getElementById('syncDot').className = 'sync-dot offline';
+    document.getElementById('syncTxt').textContent = 'Sin conexion';
+    toast(e.message, 'error');
+  }
+}
+
+function renderMapa(pisos) {
+  const cont = document.getElementById('mapaContainer');
+  if (!pisos || !pisos.length) {
+    cont.innerHTML = `<div class="empty-state"><i class="fa-solid fa-door-open"></i><p>Sin habitaciones configuradas</p></div>`;
+    return;
+  }
+  let html = '';
+  for (const piso of pisos) {
+    html += `<div class="piso-section">
+      <div class="piso-header">${piso.nombre} &mdash; ${piso.habitaciones.length} habitaciones</div>
+      <div class="hab-grid">`;
+    for (const h of piso.habitaciones) {
+      const sel = habSeleccionada && habSeleccionada.idHabitacion === h.idHabitacion ? ' selected' : '';
+      html += `
+        <div class="hab-card s-${h.estado}${sel}"
+             onclick="seleccionarHab(${h.idHabitacion})"
+             id="hab-${h.idHabitacion}">
+          <div class="hab-estado-dot dot-${h.estado}"></div>
+          <div class="hab-numero">${h.numero}</div>
+          <div class="hab-tipo">${h.tipo}</div>
+          <div class="hab-precio">S/ ${Number(h.precioBase).toFixed(0)}/noche</div>
+        </div>`;
+    }
+    html += '</div></div>';
+  }
+  cont.innerHTML = html;
+}
+
+function actualizarKPIs(pisos) {
+  let disp=0, ocup=0, res=0, limp=0;
+  for (const p of pisos) {
+    for (const h of p.habitaciones) {
+      if      (h.estado === 'DISPONIBLE') disp++;
+      else if (h.estado === 'OCUPADA')    ocup++;
+      else if (h.estado === 'RESERVADA')  res++;
+      else if (h.estado === 'LIMPIEZA')   limp++;
+    }
+  }
+  document.getElementById('kpiDisp').textContent = disp;
+  document.getElementById('kpiOcup').textContent = ocup;
+  document.getElementById('kpiRes').textContent  = res;
+  document.getElementById('kpiLimp').textContent = limp;
+}
+
+function seleccionarHab(idHab) {
+  document.querySelectorAll('.hab-card.selected').forEach(c => c.classList.remove('selected'));
+  let habData = null;
+  for (const p of mapaData) {
+    habData = p.habitaciones.find(h => h.idHabitacion === idHab);
+    if (habData) break;
+  }
+  if (!habData) return;
+  habSeleccionada = habData;
+  document.getElementById('hab-' + idHab)?.classList.add('selected');
+  renderDetalle(habData);
+}
+
+const ESTADO_COLOR = {
+  DISPONIBLE:    'var(--green)',
+  OCUPADA:       'var(--red)',
+  RESERVADA:     'var(--accent)',
+  LIMPIEZA:      'var(--yellow)',
+  MANTENIMIENTO: '#6b7280',
+  BLOQUEADA:     '#4b5563',
+  INSPECCION:    'var(--purple)'
+};
+const ESTADO_ICON = {
+  DISPONIBLE:    'fa-check-circle',
+  OCUPADA:       'fa-user',
+  RESERVADA:     'fa-calendar-check',
+  LIMPIEZA:      'fa-broom',
+  MANTENIMIENTO: 'fa-wrench',
+  BLOQUEADA:     'fa-lock',
+  INSPECCION:    'fa-magnifying-glass'
+};
+
+function renderDetalle(h) {
+  const color    = ESTADO_COLOR[h.estado] || '#888';
+  const icon     = ESTADO_ICON[h.estado]  || 'fa-circle';
+  const amenHtml = (h.amenidades||[]).map(a => `<span class="d-amenidad">${a}</span>`).join('');
+  const accionesHtml = getAcciones(h.estado, h.idHabitacion);
+
+  document.getElementById('panelDetalle').innerHTML = `
+    <div class="detalle-card">
+      <div class="d-numero">${h.numero}</div>
+      <div class="d-tipo">${h.tipo}</div>
+      <div class="d-estado-badge" style="background:${color}22;color:${color};border:1px solid ${color}44">
+        <i class="fa-solid ${icon}" style="font-size:10px"></i>${h.estado}
+      </div>
+      <div class="d-row">
+        <span>Precio base</span>
+        <strong>S/ ${Number(h.precioBase||0).toFixed(2)}/noche</strong>
+      </div>
+      <div class="d-row">
+        <span>Capacidad</span>
+        <strong>${h.maxPersonas||h.capacidad||'-'} personas</strong>
+      </div>
+      <div class="d-row">
+        <span>Limpieza</span>
+        <strong>${h.estadoLimpieza || 'LIMPIA'}</strong>
+      </div>
+      <div class="d-row">
+        <span>Piso</span>
+        <strong>${h.piso || '-'}</strong>
+      </div>
+      ${amenHtml ? `<div class="d-amenidades">${amenHtml}</div>` : ''}
+    </div>
+    <div class="acciones">${accionesHtml}</div>
+  `;
+}
+
+function getAcciones(estado, idHab) {
+  const btns = [];
+  if (estado === 'DISPONIBLE') {
+    btns.push(`<button class="btn-accion btn-reservar" onclick="accion('RESERVAR',${idHab})"><i class="fa-solid fa-calendar-plus"></i>Nueva Reserva</button>`);
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('CHECKIN',${idHab})"><i class="fa-solid fa-right-to-bracket"></i>Check-in Directo</button>`);
+    btns.push(`<button class="btn-accion btn-mantto"   onclick="accion('MANTENIMIENTO',${idHab})"><i class="fa-solid fa-wrench"></i>Poner en Mantenimiento</button>`);
+    btns.push(`<button class="btn-accion btn-bloquear" onclick="accion('BLOQUEADA',${idHab})"><i class="fa-solid fa-lock"></i>Bloquear</button>`);
+  } else if (estado === 'RESERVADA') {
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('CHECKIN',${idHab})"><i class="fa-solid fa-right-to-bracket"></i>Realizar Check-in</button>`);
+    btns.push(`<button class="btn-accion btn-bloquear" onclick="accion('DISPONIBLE',${idHab})"><i class="fa-solid fa-xmark"></i>Cancelar Reserva</button>`);
+  } else if (estado === 'OCUPADA') {
+    btns.push(`<button class="btn-accion btn-checkout" onclick="accion('LIMPIEZA',${idHab})"><i class="fa-solid fa-right-from-bracket"></i>Realizar Check-out</button>`);
+  } else if (estado === 'LIMPIEZA') {
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('DISPONIBLE',${idHab})"><i class="fa-solid fa-check"></i>Marcar como Limpia</button>`);
+    btns.push(`<button class="btn-accion btn-mantto"   onclick="accion('INSPECCION',${idHab})"><i class="fa-solid fa-magnifying-glass"></i>Enviar a Inspeccion</button>`);
+  } else if (estado === 'INSPECCION') {
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('DISPONIBLE',${idHab})"><i class="fa-solid fa-check-double"></i>Aprobar Limpieza</button>`);
+    btns.push(`<button class="btn-accion btn-limpieza" onclick="accion('LIMPIEZA',${idHab})"><i class="fa-solid fa-broom"></i>Volver a Limpiar</button>`);
+  } else if (estado === 'MANTENIMIENTO') {
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('DISPONIBLE',${idHab})"><i class="fa-solid fa-check"></i>Finalizar Mantenimiento</button>`);
+  } else if (estado === 'BLOQUEADA') {
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('DISPONIBLE',${idHab})"><i class="fa-solid fa-lock-open"></i>Desbloquear</button>`);
+  }
+  return btns.join('');
+}
+
+async function accion(nuevoEstado, idHab) {
+  const LABEL_ACCION = {
+    CHECKIN:        'Realizar Check-in',
+    LIMPIEZA:       'Enviar a Limpieza / Check-out',
+    RESERVAR:       'Crear nueva Reserva',
+    DISPONIBLE:     'Marcar como Disponible',
+    MANTENIMIENTO:  'Poner en Mantenimiento',
+    BLOQUEADA:      'Bloquear habitacion',
+    INSPECCION:     'Enviar a Inspeccion'
+  };
+
+  mostrarConfirm(
+    LABEL_ACCION[nuevoEstado] || nuevoEstado,
+    `Habitacion ${habSeleccionada?.numero || idHab}`,
+    `Nuevo estado: ${nuevoEstado}`,
+    async function() {
+      try {
+        await api.put('/habitaciones/' + idHab + '/estado', {
+          estado: nuevoEstado,
+          observaciones: ''
+        });
+        toast('Estado actualizado a ' + nuevoEstado, 'success');
+        await cargarMapa();
+        if (habSeleccionada && habSeleccionada.idHabitacion === idHab)
+          seleccionarHab(idHab);
+      } catch(e) {
+        toast(e.message, 'error');
+      }
+    }
+  );
+}
+
+// Alerta canales: escuchar badge update de layout.js
+window.addEventListener('channelBadgeUpdate', function(e) {
+  const total = e.detail?.total || 0;
+  const el = document.getElementById('channelAlert');
+  if (!el) return;
+  if (total > 0) {
+    document.getElementById('channelAlertTxt').textContent =
+      total === 1
+        ? '1 reserva nueva en Canales (Booking/Airbnb)'
+        : total + ' reservas nuevas en Canales (Booking/Airbnb)';
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'none';
+  }
+});
+
+// Carga inicial + auto-refresh cada 30 segundos
+cargarMapa();
+setInterval(cargarMapa, 30000);
+</script>
+</body>
+</html>

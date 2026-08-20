@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP — Configuracion</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<div id="app-layout">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1><i class="fa-solid fa-gear"></i> Configuracion del Sistema</h1>
+      </div>
+
+      <!-- TABS NAV -->
+      <div class="tabs" id="configTabs">
+        <button class="tab-btn active" data-tab="estructura">
+          <i class="fa-solid fa-building"></i> Estructura del Hotel
+        </button>
+        <button class="tab-btn" data-tab="general">
+          <i class="fa-solid fa-sliders"></i> General
+        </button>
+        <button class="tab-btn" data-tab="facturacion">
+          <i class="fa-solid fa-file-invoice-dollar"></i> Facturacion Electronica
+        </button>
+        <button class="tab-btn" data-tab="impresion">
+          <i class="fa-solid fa-print"></i> Impresion
+        </button>
+        <button class="tab-btn" data-tab="documentos">
+          <i class="fa-solid fa-id-card"></i> Documentos
+        </button>
+        <button class="tab-btn" data-tab="modulos">
+          <i class="fa-solid fa-puzzle-piece"></i> Modulos
+        </button>
+      </div>
+
+      <!-- ===== TAB 1: ESTRUCTURA DEL HOTEL ===== -->
+      <div class="tab-panel active" id="tab-estructura">
+
+        <!-- PISOS -->
+        <div class="card mb-24">
+          <div class="flex items-center justify-between mb-16">
+            <div class="card-title" style="margin:0"><i class="fa-solid fa-layer-group"></i> Pisos</div>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalPiso()">
+              <i class="fa-solid fa-plus"></i> Agregar Piso
+            </button>
+          </div>
+          <div class="table-wrapper">
+            <table id="tablaPisos">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Descripcion</th>
+                  <th>Orden</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="bodyPisos">
+                <tr><td colspan="6"><div class="empty-state"><i class="fa-solid fa-layer-group"></i><p>Cargando pisos...</p></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TIPOS DE HABITACION -->
+        <div class="card mb-24">
+          <div class="flex items-center justify-between mb-16">
+            <div class="card-title" style="margin:0"><i class="fa-solid fa-tags"></i> Tipos de Habitacion</div>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalTipo()">
+              <i class="fa-solid fa-plus"></i> Agregar Tipo
+            </button>
+          </div>
+          <div class="table-wrapper">
+            <table id="tablaTipos">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Capacidad</th>
+                  <th>Precio Base S/</th>
+                  <th>Descripcion</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="bodyTipos">
+                <tr><td colspan="6"><div class="empty-state"><i class="fa-solid fa-tags"></i><p>Cargando tipos...</p></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- HABITACIONES -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-16">
+            <div class="card-title" style="margin:0"><i class="fa-solid fa-door-open"></i> Habitaciones</div>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalHabitacion()">
+              <i class="fa-solid fa-plus"></i> Agregar Habitacion
+            </button>
+          </div>
+          <div class="table-wrapper">
+            <table id="tablaHabitaciones">
+              <thead>
+                <tr>
+                  <th>Numero</th>
+                  <th>Piso</th>
+                  <th>Tipo</th>
+                  <th>Estado</th>
+                  <th>Capacidad</th>
+                  <th>Precio S/</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="bodyHabitaciones">
+                <tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-door-open"></i><p>Cargando habitaciones...</p></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /tab-estructura -->
+
+      <!-- ===== TAB 2: GENERAL ===== -->
+      <div class="tab-panel" id="tab-general">
+
+        <!-- Datos del Hotel -->
+        <div class="card mb-24">
+          <div class="card-title"><i class="fa-solid fa-hotel"></i> Datos del Hotel</div>
+          <form id="formDatosHotel" onsubmit="return false">
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label>Nombre Comercial</label>
+                <input type="text" id="gNombreComercial" class="form-control" placeholder="Ej: Hotel Las Americas">
+              </div>
+              <div class="form-group">
+                <label>RUC</label>
+                <input type="text" id="gRuc" class="form-control" placeholder="20XXXXXXXXX" maxlength="11">
+              </div>
+            </div>
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label>Razon Social</label>
+                <input type="text" id="gRazonSocial" class="form-control" placeholder="Razon Social S.A.C.">
+              </div>
+              <div class="form-group">
+                <label>Direccion</label>
+                <input type="text" id="gDireccion" class="form-control" placeholder="Av. Principal 123">
+              </div>
+            </div>
+            <div class="form-row cols-3">
+              <div class="form-group">
+                <label>Departamento</label>
+                <input type="text" id="gDepartamento" class="form-control" placeholder="Cusco">
+              </div>
+              <div class="form-group">
+                <label>Provincia</label>
+                <input type="text" id="gProvincia" class="form-control" placeholder="Cusco">
+              </div>
+              <div class="form-group">
+                <label>Distrito</label>
+                <input type="text" id="gDistrito" class="form-control" placeholder="Wanchaq">
+              </div>
+            </div>
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label>Telefono</label>
+                <input type="text" id="gTelefono" class="form-control" placeholder="+51 984 000 000">
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="gEmail" class="form-control" placeholder="hotel@email.com">
+              </div>
+            </div>
+            <div class="flex" style="justify-content:flex-end">
+              <button type="button" class="btn btn-primary" onclick="guardarConfigGeneral('hotel')">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Parametros Operativos -->
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Parametros Operativos</div>
+          <form id="formParametros" onsubmit="return false">
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label>Check-in por Defecto</label>
+                <input type="time" id="pCheckin" class="form-control" value="14:00">
+              </div>
+              <div class="form-group">
+                <label>Check-out por Defecto</label>
+                <input type="time" id="pCheckout" class="form-control" value="12:00">
+              </div>
+            </div>
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label>Dias Max. Reserva Anticipada</label>
+                <input type="number" id="pDiasMax" class="form-control" value="365" min="1" max="9999">
+              </div>
+              <div class="form-group">
+                <label>Moneda</label>
+                <select id="pMoneda" class="form-control">
+                  <option value="PEN">PEN — Sol peruano</option>
+                  <option value="USD">USD — Dolar americano</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label>Tipo de Cambio USD / PEN</label>
+                <input type="number" id="pTipoCambio" class="form-control" value="3.70" min="0" step="0.01">
+              </div>
+            </div>
+            <div class="flex" style="justify-content:flex-end">
+              <button type="button" class="btn btn-primary" onclick="guardarConfigGeneral('parametros')">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div><!-- /tab-general -->
+
+      <!-- ===== TAB 3: FACTURACION ELECTRONICA ===== -->
+      <div class="tab-panel" id="tab-facturacion">
+
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-receipt"></i> Datos SUNAT / Pro7</div>
+
+          <div id="warningProduccion" class="mb-16" style="display:none;padding:10px 14px;background:var(--red-light);border:1px solid rgba(239,68,68,.35);border-radius:var(--radius-sm);color:var(--red);font-size:13px;font-weight:600;">
+            <i class="fa-solid fa-triangle-exclamation"></i> MODO PRODUCCION ACTIVO — Los comprobantes emitidos son REALES y tienen validez tributaria.
+          </div>
+
+          <form id="formFac" onsubmit="return false">
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label>RUC</label>
+                <input type="text" id="fRuc" class="form-control" placeholder="20XXXXXXXXX" maxlength="11">
+              </div>
+              <div class="form-group">
+                <label>Razon Social</label>
+                <input type="text" id="fRazonSocial" class="form-control" placeholder="Razon Social">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>URL Pro7</label>
+              <input type="text" id="fUrlPro7" class="form-control" placeholder="https://pre.pro7.io/...">
+            </div>
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label>Email Pro7</label>
+                <input type="email" id="fEmailPro7" class="form-control" placeholder="usuario@empresa.com">
+              </div>
+              <div class="form-group">
+                <label>Password Pro7</label>
+                <div style="position:relative">
+                  <input type="password" id="fPasswordPro7" class="form-control" placeholder="••••••••" style="padding-right:38px">
+                  <button type="button" onclick="togglePassPro7()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">
+                    <i class="fa-solid fa-eye" id="iconPassPro7"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Modo de Emision</label>
+              <label class="toggle-wrap" style="margin-top:4px">
+                <span class="toggle">
+                  <input type="checkbox" id="fModoProduccion" onchange="onChangeModoProduccion(this)">
+                  <span class="toggle-slider"></span>
+                </span>
+                <span id="labelModoProduccion" style="font-size:13px;color:var(--text-muted)">Pruebas (Beta)</span>
+              </label>
+            </div>
+
+            <hr class="divider">
+            <div class="card-title" style="margin-bottom:12px"><i class="fa-solid fa-list-ol"></i> Series</div>
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label>Serie Factura</label>
+                <input type="text" id="fSerieFactura" class="form-control" value="F001" maxlength="4">
+              </div>
+              <div class="form-group">
+                <label>Serie Boleta</label>
+                <input type="text" id="fSerieBoleta" class="form-control" value="B001" maxlength="4">
+              </div>
+              <div class="form-group">
+                <label>Serie NC Factura</label>
+                <input type="text" id="fSerieNcFactura" class="form-control" value="FC01" maxlength="4">
+              </div>
+              <div class="form-group">
+                <label>Serie NC Boleta</label>
+                <input type="text" id="fSerieNcBoleta" class="form-control" value="BC01" maxlength="4">
+              </div>
+            </div>
+
+            <div class="flex gap-8" style="justify-content:flex-end">
+              <button type="button" class="btn btn-ghost" onclick="probarConexionPro7()">
+                <i class="fa-solid fa-plug"></i> Probar Conexion
+              </button>
+              <button type="button" class="btn btn-primary" onclick="guardarConfigFac()">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div><!-- /tab-facturacion -->
+
+      <!-- ===== TAB 4: IMPRESION ===== -->
+      <div class="tab-panel" id="tab-impresion">
+
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-print"></i> Configuracion de Impresora</div>
+          <form id="formImpresion" onsubmit="return false">
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label>Ancho Ticket (caracteres)</label>
+                <input type="number" id="iAnchoTicket" class="form-control" value="40" min="24" max="80">
+              </div>
+              <div class="form-group">
+                <label>Puerto Agente Node</label>
+                <input type="number" id="iPuertoAgente" class="form-control" value="3001" min="1024" max="65535">
+              </div>
+            </div>
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label>Impresora Ticket (nombre Windows)</label>
+                <input type="text" id="iImpTicket" class="form-control" placeholder="Ej: EPSON TM-T20">
+              </div>
+              <div class="form-group">
+                <label>Impresora Reportes (nombre Windows)</label>
+                <input type="text" id="iImpReportes" class="form-control" placeholder="Ej: HP LaserJet Pro">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Agente Node</label>
+              <label class="toggle-wrap" style="margin-top:4px">
+                <span class="toggle">
+                  <input type="checkbox" id="iAgenteActivo">
+                  <span class="toggle-slider"></span>
+                </span>
+                <span style="font-size:13px;color:var(--text-muted)">Agente Node activo (impresion en red)</span>
+              </label>
+            </div>
+            <div class="flex gap-8" style="justify-content:flex-end">
+              <button type="button" class="btn btn-ghost" onclick="imprimirPrueba()">
+                <i class="fa-solid fa-file-lines"></i> Imprimir Prueba
+              </button>
+              <button type="button" class="btn btn-primary" onclick="guardarConfigImpresion()">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div><!-- /tab-impresion -->
+
+      <!-- ===== TAB: DOCUMENTOS (consulta DNI/RUC) ===== -->
+      <div class="tab-panel" id="tab-documentos">
+
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-id-card"></i> Consulta automatica de DNI y RUC</div>
+          <p class="text-muted text-sm mb-16">
+            Cuando esta activa, al escribir el DNI en una reserva el sistema trae solo el nombre
+            del huesped. Si cambias de proveedor, <strong>solo se cambia aca</strong>: el resto
+            del sistema no se toca.
+          </p>
+
+          <label class="toggle-wrap mb-16">
+            <span class="toggle">
+              <input type="checkbox" id="docActivo"><span class="toggle-slider"></span>
+            </span>
+            <span class="text-sm" style="margin-left:8px">Activar consulta automatica</span>
+          </label>
+
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label>Proveedor</label>
+              <select id="docProveedor" class="form-control">
+                <option value="">-- Seleccionar --</option>
+                <option value="apisnetpe">apis.net.pe</option>
+                <option value="apiperudev">apiperu.dev</option>
+                <option value="decolecta">decolecta.com</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Token del proveedor</label>
+              <div style="display:flex;gap:8px">
+                <input type="password" id="docToken" class="form-control" placeholder="Bearer token">
+                <button class="btn btn-ghost" onclick="toggleDocToken()" title="Ver/ocultar">
+                  <i class="fa-solid fa-eye" id="iconDocToken"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-muted text-sm">
+            El token lo entrega el proveedor al registrarte en su web. Los tres tienen plan
+            gratuito con limite de consultas por dia.
+          </p>
+
+          <div class="form-actions">
+            <button class="btn btn-ghost" onclick="probarConexionDocs()">
+              <i class="fa-solid fa-plug"></i> Probar conexion</button>
+            <button class="btn btn-primary" onclick="guardarConfigDocs()">
+              <i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+          </div>
+        </div>
+
+      </div><!-- /tab-documentos -->
+
+      <!-- ===== TAB 5: MODULOS ===== -->
+      <div class="tab-panel" id="tab-modulos">
+
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-puzzle-piece"></i> Modulos del Sistema</div>
+          <p class="text-muted text-sm mb-16">Activa o desactiva modulos. Los modulos desactivados no aparecen en el menu lateral.</p>
+
+          <div id="listaModulos" style="display:flex;flex-direction:column;gap:1px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+            <!-- generado por JS -->
+          </div>
+
+          <div class="flex" style="justify-content:flex-end;margin-top:16px">
+            <button class="btn btn-primary" onclick="guardarConfigModulos()">
+              <i class="fa-solid fa-floppy-disk"></i> Guardar Configuracion de Modulos
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /tab-modulos -->
+
+    </main>
+  </div>
+</div>
+
+<!-- ===================== MODAL PISO ===================== -->
+<div class="modal-overlay" id="modalPisoOverlay" onclick="cerrarModalSiOverlay(event,'modalPisoOverlay')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalPisoTitulo"><i class="fa-solid fa-layer-group" style="color:var(--accent);margin-right:8px"></i> Piso</h3>
+      <button class="btn-close" onclick="cerrarModal('modalPisoOverlay')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pisoId">
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input type="text" id="pisoNombre" class="form-control" placeholder="Ej: Piso 1, Penthouse">
+        </div>
+        <div class="form-group">
+          <label>Orden</label>
+          <input type="number" id="pisoOrden" class="form-control" value="1" min="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descripcion</label>
+        <textarea id="pisoDescripcion" class="form-control" rows="2" placeholder="Descripcion opcional"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="toggle-wrap" style="gap:10px">
+          <span class="toggle">
+            <input type="checkbox" id="pisoActivo" checked>
+            <span class="toggle-slider"></span>
+          </span>
+          <span style="font-size:13px;font-weight:500">Activo</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalPisoOverlay')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPiso()">
+        <i class="fa-solid fa-floppy-disk"></i> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL TIPO HABITACION ===================== -->
+<div class="modal-overlay" id="modalTipoOverlay" onclick="cerrarModalSiOverlay(event,'modalTipoOverlay')">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="modalTipoTitulo"><i class="fa-solid fa-tag" style="color:var(--accent);margin-right:8px"></i> Tipo de Habitacion</h3>
+      <button class="btn-close" onclick="cerrarModal('modalTipoOverlay')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="tipoId">
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input type="text" id="tipoNombre" class="form-control" placeholder="Ej: Simple, Doble, Suite">
+        </div>
+        <div class="form-group">
+          <label>Capacidad (personas)</label>
+          <input type="number" id="tipoCapacidad" class="form-control" value="2" min="1" max="20">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Precio Base por Noche (S/)</label>
+        <input type="number" id="tipoPrecio" class="form-control" value="0.00" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Descripcion</label>
+        <textarea id="tipoDescripcion" class="form-control" rows="2" placeholder="Descripcion del tipo de habitacion"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Amenidades</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px" id="amenidadesGrid">
+          <!-- generado por JS -->
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="toggle-wrap" style="gap:10px">
+          <span class="toggle">
+            <input type="checkbox" id="tipoActivo" checked>
+            <span class="toggle-slider"></span>
+          </span>
+          <span style="font-size:13px;font-weight:500">Activo</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalTipoOverlay')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarTipo()">
+        <i class="fa-solid fa-floppy-disk"></i> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL HABITACION ===================== -->
+<div class="modal-overlay" id="modalHabitacionOverlay" onclick="cerrarModalSiOverlay(event,'modalHabitacionOverlay')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalHabTitulo"><i class="fa-solid fa-door-open" style="color:var(--accent);margin-right:8px"></i> Habitacion</h3>
+      <button class="btn-close" onclick="cerrarModal('modalHabitacionOverlay')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="habId">
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label>Numero *</label>
+          <input type="text" id="habNumero" class="form-control" placeholder="Ej: 101, A-01, PH1">
+        </div>
+        <div class="form-group">
+          <label>Piso *</label>
+          <select id="habPiso" class="form-control">
+            <option value="">-- Seleccionar piso --</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label>Tipo *</label>
+          <select id="habTipo" class="form-control">
+            <option value="">-- Seleccionar tipo --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Estado Inicial</label>
+          <select id="habEstado" class="form-control">
+            <option value="DISPONIBLE">DISPONIBLE</option>
+            <option value="MANTENIMIENTO">MANTENIMIENTO</option>
+            <option value="BLOQUEADA">BLOQUEADA</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descripcion / Notas</label>
+        <textarea id="habDescripcion" class="form-control" rows="2" placeholder="Notas internas de la habitacion"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalHabitacionOverlay')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarHabitacion()">
+        <i class="fa-solid fa-floppy-disk"></i> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL CONFIRMAR ELIMINAR ===================== -->
+<div class="modal-overlay" id="modalConfirmOverlay" onclick="cerrarModalSiOverlay(event,'modalConfirmOverlay')">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-triangle-exclamation" style="color:var(--red);margin-right:8px"></i> Confirmar</h3>
+      <button class="btn-close" onclick="cerrarModal('modalConfirmOverlay')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmMensaje" style="font-size:14px;color:var(--text-muted)">¿Esta seguro?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalConfirmOverlay')">Cancelar</button>
+      <button class="btn btn-danger" id="btnConfirmOk">
+        <i class="fa-solid fa-trash"></i> Eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script src="js/modules/configuracion.js"></script>
+<script>initLayout('configuracion'); configInit();</script>
+</body>
+</html>

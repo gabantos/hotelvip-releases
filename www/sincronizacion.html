@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP — Sincronizacion</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* Indicador de conexion pulsante */
+    .conn-dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .conn-dot.online {
+      background: var(--green);
+      animation: pulse-conn 2s infinite;
+    }
+    .conn-dot.offline {
+      background: var(--red);
+    }
+    .conn-dot.checking {
+      background: var(--yellow);
+      animation: pulse-conn 1s infinite;
+    }
+    @keyframes pulse-conn {
+      0%,100%{ box-shadow: 0 0 0 0 rgba(16,185,129,.6); }
+      50%     { box-shadow: 0 0 0 7px rgba(16,185,129,0); }
+    }
+
+    /* Card de estado grande */
+    .status-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .status-card.connected  { border-color: rgba(16,185,129,.25); }
+    .status-card.disconnected { border-color: rgba(239,68,68,.2); }
+
+    /* Countdown */
+    #countdown {
+      font-size: 22px; font-weight: 700; color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Fila de log */
+    .log-estado-ok   { color: var(--green); font-weight: 600; font-size: 11px; }
+    .log-estado-err  { color: var(--red);   font-weight: 600; font-size: 11px; }
+    .log-estado-warn { color: var(--yellow);font-weight: 600; font-size: 11px; }
+
+    /* Botón forzar sync con confirmacion */
+    .btn-force {
+      background: var(--red-light); color: var(--red);
+      border: 1px solid rgba(239,68,68,.25);
+    }
+    .btn-force:hover { background: rgba(239,68,68,.25); }
+
+    /* Mini spinner en botón sync */
+    .syncing-indicator {
+      display: inline-block; width: 12px; height: 12px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle; margin-right: 4px;
+    }
+  </style>
+</head>
+<body>
+<div id="app-layout">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <!-- PAGE HEADER -->
+      <div class="page-header">
+        <h1><i class="fa-solid fa-rotate"></i> Sincronizacion</h1>
+        <div class="page-header-actions">
+          <div class="toggle-wrap" title="Sincronizacion automatica cada 2 minutos">
+            <label class="toggle">
+              <input type="checkbox" id="chkAutoSync" onchange="toggleAutoSync()">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="text-muted" style="font-size:13px">Sync Automatica</span>
+          </div>
+          <button class="btn btn-primary" id="btnSyncAhora" onclick="syncAhora()">
+            <i class="fa-solid fa-rotate"></i> Sincronizar Ahora
+          </button>
+        </div>
+      </div>
+
+      <!-- CARDS DE ESTADO -->
+      <div class="grid-3" style="margin-bottom:24px">
+
+        <!-- Card: Ultima Sincronizacion -->
+        <div class="status-card" id="cardUltima">
+          <div class="card-title">
+            <i class="fa-solid fa-clock-rotate-left"></i> Ultima Sincronizacion
+          </div>
+          <div id="lblUltimaFecha" style="font-size:14px;font-weight:600;color:var(--text)">—</div>
+          <div id="lblUltimaResult" style="font-size:12px;color:var(--text-muted)">Sin datos</div>
+        </div>
+
+        <!-- Card: Estado VPS -->
+        <div class="status-card" id="cardVPS">
+          <div class="card-title">
+            <i class="fa-solid fa-server"></i> Conexion VPS
+          </div>
+          <div class="flex items-center gap-8" style="gap:10px">
+            <span class="conn-dot checking" id="connDot"></span>
+            <span id="connLabel" style="font-size:14px;font-weight:600">Verificando...</span>
+          </div>
+          <div id="connURL" class="text-xs text-muted">—</div>
+        </div>
+
+        <!-- Card: Pendientes de Subir -->
+        <div class="status-card">
+          <div class="card-title">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Pendientes de Subir
+          </div>
+          <div style="display:flex;gap:16px;margin-top:4px">
+            <div>
+              <div class="kpi-value accent" id="kWeb">—</div>
+              <div class="kpi-label" style="margin-top:2px">Web</div>
+            </div>
+            <div>
+              <div class="kpi-value" id="kSal">—</div>
+              <div class="kpi-label" style="margin-top:2px">Salida</div>
+            </div>
+            <div>
+              <div class="kpi-value" id="kEnt">—</div>
+              <div class="kpi-label" style="margin-top:2px">Entrada</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" style="margin-bottom:24px">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--green-light);color:var(--green)">
+            <i class="fa-solid fa-database"></i>
+          </div>
+          <div class="kpi-label">Registros Sync Hoy</div>
+          <div class="kpi-value green" id="kRegHoy">—</div>
+          <div class="kpi-sub">enviados y recibidos</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--red-light);color:var(--red)">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div class="kpi-label">Errores Hoy</div>
+          <div class="kpi-value red" id="kErrHoy">—</div>
+          <div class="kpi-sub">sincronizaciones fallidas</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--accent-light);color:var(--accent)">
+            <i class="fa-solid fa-stopwatch"></i>
+          </div>
+          <div class="kpi-label">Tiempo Prom. Sync</div>
+          <div class="kpi-value accent" id="kTiempoPromedio">—</div>
+          <div class="kpi-sub">por ciclo de sincronizacion</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--yellow-light);color:var(--yellow)">
+            <i class="fa-solid fa-timer"></i>
+          </div>
+          <div class="kpi-label">Proxima Sync Auto</div>
+          <div class="kpi-value yellow" id="countdown">—</div>
+          <div class="kpi-sub" id="lblAutoSyncStatus">Sync automatica inactiva</div>
+        </div>
+      </div>
+
+      <!-- Motor Reservas Web -->
+      <div class="card mb-24" style="margin-bottom:24px">
+        <div class="card-title">
+          <i class="fa-solid fa-globe"></i> Motor de Reservas Web
+        </div>
+        <div class="flex items-center gap-12" style="gap:16px;flex-wrap:wrap">
+          <div id="motorEstado" style="display:flex;align-items:center;gap:8px;font-size:13px">
+            <i class="fa-solid fa-spinner fa-spin"></i> Cargando...
+          </div>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('web', this)">
+          <i class="fa-solid fa-globe"></i> Reservas Web
+          <span id="badgeWeb" style="display:none;background:var(--yellow-light);
+            color:var(--yellow);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:4px"></span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('log', this)">
+          <i class="fa-solid fa-list-ul"></i> Log de Sync
+        </button>
+      </div>
+
+      <!-- TAB: RESERVAS WEB -->
+      <div id="tab-web" class="tab-panel active">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha Recibida</th>
+                <th>Cliente</th>
+                <th>Check-in</th>
+                <th>Check-out</th>
+                <th style="text-align:center">Adultos</th>
+                <th style="text-align:right">Total</th>
+                <th style="text-align:right">Adelanto</th>
+                <th>Estado</th>
+                <th style="text-align:center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbWeb">
+              <tr><td colspan="9" class="empty-state">
+                <i class="fa-solid fa-spinner fa-spin"></i><p>Cargando...</p>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: LOG DE SYNC -->
+      <div id="tab-log" class="tab-panel">
+        <div class="flex gap-12 mb-16" style="align-items:center;margin-bottom:16px;flex-wrap:wrap">
+          <select class="form-control" id="fLogEstado" onchange="cargarLog()" style="width:150px">
+            <option value="">Todos</option>
+            <option value="OK">OK</option>
+            <option value="ERROR">Con errores</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="cargarLog()">
+            <i class="fa-solid fa-rotate"></i> Actualizar log
+          </button>
+          <div style="flex:1"></div>
+          <button class="btn btn btn-force btn-sm" onclick="confirmarForzar()">
+            <i class="fa-solid fa-bolt"></i> Forzar Sync Completa
+          </button>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th style="text-align:right">Registros</th>
+                <th>Estado</th>
+                <th style="text-align:right">Duracion</th>
+                <th>Detalle</th>
+              </tr>
+            </thead>
+            <tbody id="tbLog">
+              <tr><td colspan="6" class="empty-state">
+                <i class="fa-solid fa-list-ul"></i><p>Seleccione el tab Log para ver historial</p>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- ========== MODAL: CONFIRMAR SYNC COMPLETA ========== -->
+<div class="modal-overlay" id="modalForzar">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-bolt" style="color:var(--yellow)"></i> Forzar Sincronizacion Completa</h3>
+      <button class="btn-close" onclick="cerrar('modalForzar')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom:12px;font-size:13px">
+        Esta operacion sincronizara <strong>todos los registros</strong> desde el inicio,
+        independientemente de si ya fueron sincronizados. Puede tardar varios minutos.
+      </p>
+      <div style="background:var(--yellow-light);border-radius:var(--radius-sm);
+           padding:10px 14px;font-size:12px;color:var(--yellow);display:flex;gap:8px;align-items:flex-start">
+        <i class="fa-solid fa-triangle-exclamation" style="margin-top:2px;flex-shrink:0"></i>
+        <span>Se recomienda ejecutar en horario de baja actividad. No cierre el sistema durante la sincronizacion.</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrar('modalForzar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="ejecutarForzar()">
+        <i class="fa-solid fa-bolt"></i> Confirmar y Ejecutar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: RECHAZAR RESERVA WEB ========== -->
+<div class="modal-overlay" id="modalRechazar">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-xmark" style="color:var(--red)"></i> Rechazar Reserva Web</h3>
+      <button class="btn-close" onclick="cerrar('modalRechazar')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Motivo del Rechazo</label>
+        <textarea class="form-control" id="rechazarMotivo" rows="3"
+                  placeholder="Describe el motivo del rechazo al cliente..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrar('modalRechazar')">Cancelar</button>
+      <button class="btn btn-danger" onclick="ejecutarRechazo()">
+        <i class="fa-solid fa-xmark"></i> Rechazar Reserva
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script>
+initLayout('sincronizacion');
+
+/* ─── Estado ───────────────────────────────────────────── */
+let autoSyncTimer    = null;
+let countdownTimer   = null;
+let segsRestantes    = 0;
+let idRechazar       = null;
+let logCargado       = false;
+
+/* ─── Init ─────────────────────────────────────────────── */
+async function init() {
+  await Promise.all([
+    cargarEstado(),
+    cargarWebReservas()
+  ]);
+}
+
+/* ─── Estado principal ─────────────────────────────────── */
+async function cargarEstado() {
+  try {
+    const [est, cfg] = await Promise.all([
+      api.get('/sync/estado'),
+      api.get('/sync/config-motor')
+    ]);
+    const d = est.data;
+    const c = cfg.data;
+
+    /* --- Card: Ultima Sync --- */
+    const cardUltima = document.getElementById('cardUltima');
+    if (d.ultimaSync) {
+      document.getElementById('lblUltimaFecha').textContent = fFechaHora(d.ultimaSync);
+      const ok = d.ultimaOK !== false;
+      document.getElementById('lblUltimaResult').innerHTML =
+        ok ? '<span style="color:var(--green)"><i class="fa-solid fa-check"></i> Completada exitosamente</span>'
+           : '<span style="color:var(--red)"><i class="fa-solid fa-xmark"></i> Finalizo con errores</span>';
+      cardUltima.className = 'status-card ' + (ok ? 'connected' : 'disconnected');
+    } else {
+      document.getElementById('lblUltimaFecha').textContent = 'Sin sincronizaciones';
+      document.getElementById('lblUltimaResult').textContent = 'Primera vez';
+    }
+
+    /* --- Card: VPS --- */
+    const online = d.internet || d.vpsOnline || false;
+    const dot    = document.getElementById('connDot');
+    dot.className = 'conn-dot ' + (online ? 'online' : 'offline');
+    document.getElementById('connLabel').textContent = online ? 'Conectado' : 'Sin conexion';
+    document.getElementById('connLabel').style.color = online ? 'var(--green)' : 'var(--red)';
+    document.getElementById('connURL').textContent   = d.vpsURL || d.urlVPS || '—';
+    document.getElementById('cardVPS').className     = 'status-card ' + (online ? 'connected' : 'disconnected');
+
+    /* --- Cola pendientes --- */
+    document.getElementById('kWeb').textContent = d.webPendientes ?? '0';
+    document.getElementById('kSal').textContent = d.salPendientes ?? '0';
+    document.getElementById('kEnt').textContent = d.entPendientes ?? '0';
+
+    /* --- KPIs --- */
+    document.getElementById('kRegHoy').textContent       = d.registrosHoy    ?? '—';
+    document.getElementById('kErrHoy').textContent       = d.erroresHoy      ?? '0';
+    document.getElementById('kTiempoPromedio').textContent = d.tiempoPromedio
+      ? (d.tiempoPromedio < 60 ? d.tiempoPromedio + 's' : Math.round(d.tiempoPromedio/60) + 'min')
+      : '—';
+
+    /* --- Motor reservas web --- */
+    document.getElementById('motorEstado').innerHTML =
+      `<span class="badge ${c.habilitado ? 'badge-green' : 'badge-gray'}">
+         ${c.habilitado ? '<i class="fa-solid fa-circle" style="font-size:8px;animation:pulse-conn 2s infinite"></i> ACTIVO' : 'INACTIVO'}
+       </span>
+       <span class="text-muted text-sm">Min ${c.minNoches ?? 1} noche(s)</span>
+       <span class="text-muted text-sm">Adelanto ${c.pctAdelanto ?? 0}%</span>`;
+
+  } catch(e) {
+    toast('Error cargando estado: ' + e.message, 'error');
+  }
+}
+
+/* ─── Reservas Web ─────────────────────────────────────── */
+async function cargarWebReservas() {
+  const tbody = document.getElementById('tbWeb');
+  try {
+    const res  = await api.get('/sync/web-reservas');
+    const list = res.data || [];
+
+    const badge = document.getElementById('badgeWeb');
+    const pend  = list.filter(r => r.estado === 'PENDIENTE').length;
+    if (pend) {
+      badge.style.display = 'inline';
+      badge.textContent   = pend;
+    } else {
+      badge.style.display = 'none';
+    }
+
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
+        <i class="fa-solid fa-inbox"></i><p>Sin reservas web recibidas</p>
+      </div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(r => {
+      const estadoBadge = {
+        'PENDIENTE':  'badge-yellow',
+        'PROCESADA':  'badge-green',
+        'RECHAZADA':  'badge-red'
+      }[r.estado] || 'badge-gray';
+
+      return `<tr>
+        <td>
+          <div style="font-size:12px">${fFechaHora(r.fecha)}</div>
+        </td>
+        <td>
+          <div style="font-weight:500">${r.cliente}</div>
+          <div class="text-xs text-muted">${r.email || ''}</div>
+        </td>
+        <td>${fFecha(r.entrada)}</td>
+        <td>${fFecha(r.salida)}</td>
+        <td style="text-align:center">${r.adultos ?? '—'}</td>
+        <td style="text-align:right;font-weight:600">${fMoneda(r.total)}</td>
+        <td style="text-align:right;color:${r.adelanto > 0 ? 'var(--green)' : 'var(--text-muted)'}">
+          ${r.adelanto > 0 ? fMoneda(r.adelanto) : '—'}
+        </td>
+        <td>
+          <span class="badge ${estadoBadge}">${r.estado}</span>
+          ${r.error ? `<div class="text-xs" style="color:var(--red);margin-top:3px">${r.error}</div>` : ''}
+        </td>
+        <td style="text-align:center">
+          ${r.estado === 'PENDIENTE' ? `
+            <div class="flex gap-8" style="justify-content:center;gap:6px">
+              <button class="btn btn-success btn-sm" onclick="procesarWeb(${r.id})">
+                <i class="fa-solid fa-check"></i> Procesar
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="abrirRechazar(${r.id})">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>` : '—'}
+        </td>
+      </tr>`;
+    }).join('');
+
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
+      <i class="fa-solid fa-circle-exclamation" style="color:var(--red)"></i>
+      <p>${e.message}</p>
+    </div></td></tr>`;
+  }
+}
+
+/* ─── Log de Sync ──────────────────────────────────────── */
+async function cargarLog() {
+  logCargado = true;
+  const tbody  = document.getElementById('tbLog');
+  const estado = document.getElementById('fLogEstado').value;
+
+  tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Cargando log...</p></td></tr>';
+
+  try {
+    let url = '/sync/log?limit=50';
+    if (estado) url += '&estado=' + estado;
+    const res  = await api.get(url);
+    const list = res.data || [];
+
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+        <i class="fa-solid fa-list-ul"></i><p>Sin registros de log</p>
+      </div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(l => {
+      const esOK  = l.estado === 'OK' || l.estado === 'EXITOSO';
+      const esErr = l.estado === 'ERROR' || l.estado === 'FALLIDO';
+      const cls   = esOK ? 'log-estado-ok' : esErr ? 'log-estado-err' : 'log-estado-warn';
+      const icon  = esOK ? 'fa-check' : esErr ? 'fa-xmark' : 'fa-exclamation';
+      return `<tr>
+        <td style="font-size:12px">${fFechaHora(l.fecha)}</td>
+        <td>${l.tipo || '—'}</td>
+        <td style="text-align:right;font-weight:600">${l.registros ?? 0}</td>
+        <td><span class="${cls}"><i class="fa-solid ${icon}"></i> ${l.estado}</span></td>
+        <td style="text-align:right" class="muted">
+          ${l.duracion ? (l.duracion < 60 ? l.duracion + 's' : Math.round(l.duracion/60) + 'min') : '—'}
+        </td>
+        <td class="muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;font-size:11px">
+          ${l.detalle || ''}
+        </td>
+      </tr>`;
+    }).join('');
+
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+      <i class="fa-solid fa-circle-exclamation" style="color:var(--red)"></i>
+      <p>${e.message}</p>
+    </div></td></tr>`;
+  }
+}
+
+/* ─── Sync Ahora ───────────────────────────────────────── */
+async function syncAhora() {
+  const btn = document.getElementById('btnSyncAhora');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="syncing-indicator"></span> Sincronizando...';
+  try {
+    await api.post('/sync/forzar', {});
+    toast('Sincronizacion completada', 'success');
+    await init();
+    if (logCargado) cargarLog();
+  } catch(e) {
+    toast('Error de sync: ' + e.message, 'error');
+  } finally {
+    btn.disabled  = false;
+    btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar Ahora';
+  }
+}
+
+/* ─── Auto Sync ────────────────────────────────────────── */
+function toggleAutoSync() {
+  const on = document.getElementById('chkAutoSync').checked;
+  if (on) {
+    iniciarAutoSync();
+    toast('Sync automatica activada (cada 2 min)', 'info');
+  } else {
+    detenerAutoSync();
+    toast('Sync automatica desactivada', 'warning');
+  }
+}
+
+function iniciarAutoSync() {
+  detenerAutoSync();
+  segsRestantes = 120;
+  actualizarCountdown();
+  document.getElementById('lblAutoSyncStatus').textContent = 'Proxima sync automatica';
+
+  countdownTimer = setInterval(() => {
+    segsRestantes--;
+    actualizarCountdown();
+    if (segsRestantes <= 0) {
+      segsRestantes = 120;
+      syncAhora();
+    }
+  }, 1000);
+}
+
+function detenerAutoSync() {
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  document.getElementById('countdown').textContent = '—';
+  document.getElementById('lblAutoSyncStatus').textContent = 'Sync automatica inactiva';
+}
+
+function actualizarCountdown() {
+  const min  = Math.floor(segsRestantes / 60);
+  const segs = String(segsRestantes % 60).padStart(2, '0');
+  document.getElementById('countdown').textContent = `${min}:${segs}`;
+}
+
+/* ─── Forzar Sync Completa ─────────────────────────────── */
+function confirmarForzar() {
+  document.getElementById('modalForzar').classList.add('open');
+}
+
+async function ejecutarForzar() {
+  cerrar('modalForzar');
+  const btn = document.getElementById('btnSyncAhora');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="syncing-indicator"></span> Forzando sync...';
+  try {
+    await api.post('/sync/forzar', {});
+    toast('Sincronizacion completa ejecutada', 'success');
+    await init();
+    if (logCargado) cargarLog();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled  = false;
+    btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar Ahora';
+  }
+}
+
+/* ─── Procesar / Rechazar Reserva Web ─────────────────── */
+async function procesarWeb(id) {
+  try {
+    const res = await api.post('/sync/web-reservas/' + id + '/procesar', {});
+    toast('Reserva procesada — ID: ' + res.data.idReserva, 'success');
+    cargarWebReservas();
+    cargarEstado();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function abrirRechazar(id) {
+  idRechazar = id;
+  document.getElementById('rechazarMotivo').value = '';
+  document.getElementById('modalRechazar').classList.add('open');
+}
+
+async function ejecutarRechazo() {
+  const motivo = document.getElementById('rechazarMotivo').value.trim();
+  if (!motivo) { toast('Ingrese el motivo del rechazo', 'warning'); return; }
+  try {
+    await api.post('/sync/web-reservas/' + idRechazar + '/rechazar', { motivo });
+    toast('Reserva rechazada', 'success');
+    cerrar('modalRechazar');
+    cargarWebReservas();
+    cargarEstado();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+/* ─── Tabs ─────────────────────────────────────────────── */
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'log' && !logCargado) cargarLog();
+}
+
+/* ─── Helper ───────────────────────────────────────────── */
+function cerrar(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+/* ─── Start ────────────────────────────────────────────── */
+init();
+// Refresh de estado cada 30s igual que antes
+setInterval(() => {
+  cargarEstado();
+  cargarWebReservas();
+}, 30000);
+</script>
+</body>
+</html>

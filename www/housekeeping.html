@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP &mdash; Housekeeping</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* Tarea card estados */
+    .tarea-card {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .tarea-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .tarea-card.s-PENDIENTE   { border-color: var(--yellow); }
+    .tarea-card.s-EN_PROCESO  { border-color: var(--accent); }
+    .tarea-card.s-COMPLETADA  { border-color: var(--green); }
+    .tarea-card.s-VERIFICADA  { border-color: #10b981; }
+    .tarea-card.s-RECHAZADA   { border-color: var(--red); }
+
+    .tarea-hab  { font-size: 26px; font-weight: 700; line-height: 1; }
+    .tarea-piso { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+    .tarea-tipo { font-size: 12px; font-weight: 600; margin-top: 6px; color: var(--text-muted); }
+    .tarea-asig { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+    .tarea-prog { height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; margin-top: 8px; }
+    .tarea-prog-fill { height: 4px; border-radius: 2px; background: var(--green); transition: width .3s; }
+
+    .prio-1 { color: var(--red); font-weight: 700; }
+    .prio-2 { color: var(--yellow); }
+    .prio-3 { color: var(--text-faint); }
+
+    /* Checklist */
+    .check-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: var(--radius-sm);
+      margin-bottom: 4px; cursor: pointer;
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      transition: background .1s;
+    }
+    .check-item:hover { background: rgba(255,255,255,.06); }
+    .check-item.done  { background: rgba(16,185,129,.06); border-color: rgba(16,185,129,.15); }
+    .check-item.done .check-lbl { color: var(--text-faint); text-decoration: line-through; }
+    .check-box {
+      width: 20px; height: 20px; border-radius: 5px;
+      border: 2px solid rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: var(--transition); font-size: 11px;
+    }
+    .check-box.done { background: var(--green); border-color: var(--green); color: #fff; }
+    .check-lbl { font-size: 13px; }
+
+    /* Sidebar KPI small */
+    .side-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .side-kpi { background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+    .side-kpi .v { font-size: 20px; font-weight: 700; line-height: 1; }
+    .side-kpi .l { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+
+    /* Camarera item */
+    .cam-item { background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; margin-bottom: 5px; }
+    .cam-name  { font-size: 13px; font-weight: 600; }
+    .cam-det   { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+    .cam-bar   { height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; margin-top: 6px; }
+    .cam-bar-fill { height: 4px; border-radius: 2px; background: var(--green); transition: width .3s; }
+
+    /* Insumo item */
+    .ins-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; background: var(--bg-body); border: 1px solid var(--border); border-radius: 7px; margin-bottom: 4px; }
+    .ins-bar  { width: 60px; height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+    .ins-bar-fill { height: 5px; border-radius: 3px; }
+
+    /* Filtros pill */
+    .filtro-pill {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      background: rgba(255,255,255,.04); border: 1px solid var(--border);
+      color: var(--text-muted); cursor: pointer; transition: var(--transition);
+    }
+    .filtro-pill.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+    /* Hab rooms grid */
+    .hab-room {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px; text-align: center;
+      cursor: pointer; transition: var(--transition);
+    }
+    .hab-room:hover { border-color: rgba(255,255,255,.15); }
+    .hab-room .num  { font-size: 22px; font-weight: 700; }
+    .hab-room .est  { font-size: 10px; font-weight: 600; margin-top: 4px; padding: 2px 6px; border-radius: 10px; }
+
+    /* Sidebar section label */
+    .side-label { font-size: 10px; font-weight: 600; color: var(--text-faint); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+
+    /* Alert urgentes */
+    .alert-warn { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.2); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--red); display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+
+    /* Tabla lista compacta */
+    .tabla-tareas .t-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; }
+    .b-PENDIENTE   { background: var(--yellow-light);  color: var(--yellow); }
+    .b-EN_PROCESO  { background: var(--accent-light);  color: var(--accent); }
+    .b-COMPLETADA  { background: var(--green-light);   color: var(--green); }
+    .b-VERIFICADA  { background: rgba(16,185,129,.12); color: #10b981; }
+    .b-RECHAZADA   { background: var(--red-light);     color: var(--red); }
+
+    /* Lost & Found */
+    .lofo-item { display: flex; align-items: flex-start; gap: 8px; padding: 7px 10px; background: var(--yellow-light); border: 1px solid rgba(245,158,11,.2); border-radius: 7px; margin-bottom: 4px; font-size: 12px; color: var(--yellow); }
+  </style>
+</head>
+<body>
+<div id="app-layout">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <!-- PAGE HEADER -->
+      <div class="page-header">
+        <h1><i class="fa-solid fa-broom"></i>Housekeeping</h1>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost" onclick="init()"><i class="fa-solid fa-rotate"></i>Actualizar</button>
+          <button class="btn btn-primary" onclick="abrirNuevaTarea()"><i class="fa-solid fa-plus"></i>Nueva Tarea</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--yellow-light);color:var(--yellow);float:right"><i class="fa-solid fa-clock"></i></div>
+          <div class="kpi-label">Pendientes</div>
+          <div class="kpi-value yellow" id="kpiPend">-</div>
+          <div class="kpi-sub">Sin iniciar</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--accent-light);color:var(--accent);float:right"><i class="fa-solid fa-spinner"></i></div>
+          <div class="kpi-label">En Proceso</div>
+          <div class="kpi-value accent" id="kpiProc">-</div>
+          <div class="kpi-sub">En limpieza</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--green-light);color:var(--green);float:right"><i class="fa-solid fa-check"></i></div>
+          <div class="kpi-label">Completadas hoy</div>
+          <div class="kpi-value green" id="kpiComp">-</div>
+          <div class="kpi-sub">Por verificar</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:rgba(139,92,246,.15);color:#8b5cf6;float:right"><i class="fa-solid fa-star"></i></div>
+          <div class="kpi-label">Verificadas</div>
+          <div class="kpi-value" style="color:#8b5cf6" id="kpiVerif">-</div>
+          <div class="kpi-sub">Listas hoy</div>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs" id="mainTabs">
+        <button class="tab-btn active" onclick="cambiarTab('tareas', this)"><i class="fa-solid fa-list-check"></i> Tareas</button>
+        <button class="tab-btn" onclick="cambiarTab('habitaciones', this)"><i class="fa-solid fa-bed"></i> Habitaciones</button>
+        <button class="tab-btn" onclick="cambiarTab('personal', this)"><i class="fa-solid fa-users"></i> Personal</button>
+      </div>
+
+      <!-- TAB: TAREAS -->
+      <div id="tabTareas" class="tab-panel active">
+        <!-- Filtros -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1">
+            <button class="filtro-pill active" data-estado="" onclick="filtrarEstado(this,'')">Todas</button>
+            <button class="filtro-pill" data-estado="PENDIENTE"  onclick="filtrarEstado(this,'PENDIENTE')">Pendientes</button>
+            <button class="filtro-pill" data-estado="EN_PROCESO" onclick="filtrarEstado(this,'EN_PROCESO')">En Proceso</button>
+            <button class="filtro-pill" data-estado="COMPLETADA" onclick="filtrarEstado(this,'COMPLETADA')">Completadas</button>
+            <button class="filtro-pill" data-estado="RECHAZADA"  onclick="filtrarEstado(this,'RECHAZADA')">Rechazadas</button>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-ghost btn-sm" onclick="cambiarVista('grid',this)" id="btnVGrid"><i class="fa-solid fa-grip"></i></button>
+            <button class="btn btn-ghost btn-sm" onclick="cambiarVista('lista',this)" id="btnVList"><i class="fa-solid fa-list"></i></button>
+          </div>
+        </div>
+        <div id="tareasContainer">
+          <div style="text-align:center;padding:60px;color:var(--text-faint)"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- TAB: HABITACIONES -->
+      <div id="tabHabitaciones" class="tab-panel">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px" id="habGrid">
+          <div style="text-align:center;padding:40px;color:var(--text-faint);grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- TAB: PERSONAL -->
+      <div id="tabPersonal" class="tab-panel">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px" id="personalGrid">
+          <div style="text-align:center;padding:40px;color:var(--text-faint);grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL DETALLE TAREA -->
+<div class="modal-overlay" id="modalTarea">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <h3 id="mtTitulo">Tarea</h3>
+        <div id="mtBadge" style="margin-top:4px"></div>
+      </div>
+      <button class="btn-close" onclick="cerrarModal('modalTarea')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" id="mtBody">
+      <div style="text-align:center;padding:30px"><div class="spinner"></div></div>
+    </div>
+    <div class="modal-footer" id="mtAcciones"></div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA TAREA -->
+<div class="modal-overlay" id="modalNueva">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-plus" style="color:var(--accent)"></i> Nueva Tarea</h3>
+      <button class="btn-close" onclick="cerrarModal('modalNueva')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Habitacion</label>
+        <select class="form-control" id="nHab" onchange="onHabSelChange()">
+          <option value="">-- Seleccionar --</option>
+        </select>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label>Tipo de Limpieza</label>
+          <select class="form-control" id="nTipo">
+            <option value="DIARIA">Limpieza Diaria</option>
+            <option value="POST_CHECKOUT">Post Checkout</option>
+            <option value="PROFUNDA">Limpieza Profunda</option>
+            <option value="INSPECCION">Solo Inspeccion</option>
+            <option value="PEDIDO_HUESPED">Pedido del Huesped</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prioridad</label>
+          <select class="form-control" id="nPrioridad">
+            <option value="1">1 - URGENTE</option>
+            <option value="2" selected>2 - Normal</option>
+            <option value="3">3 - Baja</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Asignar a</label>
+        <select class="form-control" id="nAsignado">
+          <option value="0">Sin asignar</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Observaciones</label>
+        <input type="text" class="form-control" id="nObs" placeholder="Notas especiales...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalNueva')">Cancelar</button>
+      <button class="btn btn-primary" onclick="crearTarea()"><i class="fa-solid fa-check"></i>Crear Tarea</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script>
+initLayout('housekeeping');
+
+let tareasTodas = [];
+let filtroEstado = '';
+let vistaActual  = 'grid';
+let tareaDetalle = null;
+
+const TIPO_LABEL = {
+  POST_CHECKOUT:'Post Checkout', DIARIA:'Diaria', PROFUNDA:'Profunda',
+  INSPECCION:'Inspeccion', PEDIDO_HUESPED:'Pedido Huesped',
+  LIMPIEZA:'Limpieza', MANTENIMIENTO:'Mantenimiento'
+};
+const PRIO_ICON = ['','<i class="fa-solid fa-bolt"></i>','<i class="fa-solid fa-circle-dot"></i>','<i class="fa-solid fa-arrow-down"></i>'];
+
+function fFechaHora(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  return d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'}) + ' ' +
+         d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function init() {
+  await Promise.all([
+    cargarResumen(),
+    cargarTareas(),
+    cargarHabitacionesGrid(),
+    cargarCamareras()
+  ]);
+}
+
+// ── KPIs ──────────────────────────────────────────────────
+async function cargarResumen() {
+  try {
+    const res = await api.get('/hsk/tareas/resumen');
+    const d = res.data;
+    document.getElementById('kpiPend').textContent  = d.pendientes;
+    document.getElementById('kpiProc').textContent  = d.enProceso;
+    document.getElementById('kpiComp').textContent  = d.completadas;
+    document.getElementById('kpiVerif').textContent = d.verificadas;
+  } catch(e) {}
+}
+
+// ── TAREAS ─────────────────────────────────────────────────
+async function cargarTareas() {
+  try {
+    const res = await api.get('/hsk/tareas');
+    tareasTodas = res.data || [];
+    renderTareas();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function filtrarEstado(el, estado) {
+  filtroEstado = estado;
+  document.querySelectorAll('.filtro-pill').forEach(f => f.classList.remove('active'));
+  el.classList.add('active');
+  renderTareas();
+}
+
+function cambiarVista(v, btn) {
+  vistaActual = v;
+  renderTareas();
+}
+
+function renderTareas() {
+  const lista = filtroEstado
+    ? tareasTodas.filter(t => t.estado === filtroEstado)
+    : tareasTodas;
+
+  const cont = document.getElementById('tareasContainer');
+  if (!lista.length) {
+    cont.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-faint)">Sin tareas</div>';
+    return;
+  }
+
+  if (vistaActual === 'grid') {
+    cont.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px">' +
+      lista.map(t => {
+        const prog = t.totalItems > 0 ? Math.round((t.itemsDone / t.totalItems) * 100) : 0;
+        const prioClass = 'prio-' + (t.prioridad || 3);
+        return `
+        <div class="tarea-card s-${t.estado}" onclick="verTarea(${t.id})">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="tarea-hab">${t.habitacion}</div>
+              <div class="tarea-piso">${t.piso || ''}</div>
+            </div>
+            <span class="${prioClass}" style="font-size:11px;font-weight:700">${PRIO_ICON[t.prioridad]||''} P${t.prioridad}</span>
+          </div>
+          <div class="tarea-tipo">${TIPO_LABEL[t.tipo] || t.tipo}</div>
+          <div class="tarea-asig">${t.asignado
+            ? '<i class="fa-solid fa-user" style="font-size:10px"></i> ' + t.asignado
+            : '<span style="color:var(--red)"><i class="fa-solid fa-user-slash" style="font-size:10px"></i> Sin asignar</span>'}</div>
+          <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between">
+            <span class="badge t-badge b-${t.estado}">${t.estado.replace('_',' ')}</span>
+            ${t.reserva ? `<span style="font-size:10px;color:var(--text-faint)">${t.reserva}</span>` : ''}
+          </div>
+          ${t.totalItems > 0 ? `
+          <div class="tarea-prog" style="margin-top:8px">
+            <div class="tarea-prog-fill" style="width:${prog}%"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text-faint);text-align:right;margin-top:2px">${t.itemsDone}/${t.totalItems}</div>` : ''}
+        </div>`;
+      }).join('') + '</div>';
+  } else {
+    cont.innerHTML = `
+    <div class="table-wrapper tabla-tareas">
+      <table>
+        <thead><tr>
+          <th>Habitacion</th><th>Tipo</th><th>Prioridad</th>
+          <th>Asignado a</th><th>Estado</th><th>Progreso</th><th>Creado</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${lista.map(t => {
+            const prog = t.totalItems > 0 ? Math.round((t.itemsDone / t.totalItems) * 100) : 0;
+            return `<tr>
+              <td><div style="font-size:18px;font-weight:700">${t.habitacion}</div>
+                <div class="text-sm text-muted">${t.piso || ''}</div></td>
+              <td>${TIPO_LABEL[t.tipo] || t.tipo}</td>
+              <td><span class="prio-${t.prioridad || 3}" style="font-size:12px;font-weight:700">P${t.prioridad}</span></td>
+              <td style="color:${t.asignado ? 'var(--text)' : 'var(--red)'}">${t.asignado || 'Sin asignar'}</td>
+              <td><span class="badge t-badge b-${t.estado}">${t.estado.replace('_',' ')}</span></td>
+              <td>
+                <div style="width:80px;height:5px;background:rgba(255,255,255,.08);border-radius:2px">
+                  <div style="width:${prog}%;height:5px;border-radius:2px;background:var(--green)"></div>
+                </div>
+                <div class="text-sm text-muted">${t.itemsDone}/${t.totalItems}</div>
+              </td>
+              <td class="text-sm muted">${fFechaHora(t.fechaCreacion)}</td>
+              <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();verTarea(${t.id})">Ver</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+}
+
+// ── DETALLE TAREA ──────────────────────────────────────────
+async function verTarea(id) {
+  document.getElementById('mtBody').innerHTML =
+    '<div style="text-align:center;padding:30px"><div class="spinner"></div></div>';
+  document.getElementById('mtAcciones').innerHTML = '';
+  document.getElementById('modalTarea').classList.add('open');
+
+  try {
+    const res = await api.get('/hsk/tareas/' + id);
+    tareaDetalle = res.data;
+    const t = res.data;
+
+    document.getElementById('mtTitulo').textContent =
+      `Hab ${t.habitacion} — ${TIPO_LABEL[t.tipo] || t.tipo}`;
+    document.getElementById('mtBadge').innerHTML =
+      `<span class="badge b-${t.estado}">${t.estado.replace('_',' ')}</span>
+       <span class="text-sm text-muted" style="margin-left:8px">${t.piso || ''} &middot; ${t.tipoHab || ''}</span>`;
+
+    const checkHtml = t.checklist?.length ? t.checklist.map(c => `
+      <div class="check-item ${c.completado ? 'done' : ''}" id="ci-${c.id}"
+           onclick="tickItem(${c.id},${!c.completado},${id})">
+        <div class="check-box ${c.completado ? 'done' : ''}">
+          ${c.completado ? '<i class="fa-solid fa-check" style="font-size:10px"></i>' : ''}
+        </div>
+        <span class="check-lbl">${c.descripcion}</span>
+      </div>`).join('')
+      : '<div class="text-sm text-muted">Sin checklist</div>';
+
+    const doneCount = t.checklist?.filter(c => c.completado).length || 0;
+    const totalCount = t.checklist?.length || 0;
+    const prog = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+    document.getElementById('mtBody').innerHTML = `
+      <div class="form-row cols-2" style="margin-bottom:14px">
+        <div>
+          <div class="text-sm text-muted" style="margin-bottom:3px">ASIGNADO</div>
+          <div style="font-weight:600">${t.asignado || '<span style="color:var(--red)">Sin asignar</span>'}</div>
+        </div>
+        <div>
+          <div class="text-sm text-muted" style="margin-bottom:3px">SUPERVISOR</div>
+          <div style="font-weight:600">${t.supervisor || '&mdash;'}</div>
+        </div>
+        <div>
+          <div class="text-sm text-muted" style="margin-bottom:3px">CREADA</div>
+          <div>${fFechaHora(t.fechaCreacion)}</div>
+        </div>
+        <div>
+          <div class="text-sm text-muted" style="margin-bottom:3px">INICIO</div>
+          <div>${t.fechaInicio ? fFechaHora(t.fechaInicio) : '&mdash;'}</div>
+        </div>
+      </div>
+
+      ${t.observaciones ? `<div style="background:var(--bg-body);border-radius:7px;padding:10px;font-size:13px;color:var(--text-muted);margin-bottom:12px">${t.observaciones}</div>` : ''}
+      ${t.notasSupervisor ? `<div style="background:var(--red-light);border-radius:7px;padding:10px;font-size:13px;color:var(--red);margin-bottom:12px;border:1px solid rgba(239,68,68,.2)"><i class="fa-solid fa-triangle-exclamation"></i> ${t.notasSupervisor}</div>` : ''}
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="text-sm" style="font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">
+          Checklist (${doneCount}/${totalCount})
+        </div>
+        <div class="text-sm" style="color:var(--green)">${prog}% completado</div>
+      </div>
+      <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-bottom:12px">
+        <div style="width:${prog}%;height:4px;border-radius:2px;background:var(--green);transition:width .3s"></div>
+      </div>
+      <div>${checkHtml}</div>
+
+      <div style="margin-top:16px">
+        <button onclick="modalObjeto(${t.id}, ${t.idHabitacion})"
+          class="btn btn-ghost btn-sm">
+          <i class="fa-solid fa-magnifying-glass"></i> Reportar objeto encontrado
+        </button>
+      </div>`;
+
+    // Acciones segun estado
+    const acc = document.getElementById('mtAcciones');
+    const btns = [];
+    if (t.estado === 'PENDIENTE')
+      btns.push(`<button class="btn btn-primary" onclick="accionTarea('iniciar',${id})"><i class="fa-solid fa-play"></i>Iniciar Limpieza</button>`);
+    if (t.estado === 'EN_PROCESO')
+      btns.push(`<button class="btn btn-success" onclick="accionTarea('completar',${id})"><i class="fa-solid fa-check"></i>Marcar Completada</button>`);
+    if (t.estado === 'COMPLETADA') {
+      btns.push(`<button class="btn btn-success" onclick="verificarTarea(${id},true)"><i class="fa-solid fa-check-double"></i>Aprobar</button>`);
+      btns.push(`<button class="btn btn-danger" onclick="verificarTarea(${id},false)"><i class="fa-solid fa-xmark"></i>Rechazar</button>`);
+    }
+    if (['PENDIENTE','RECHAZADA'].includes(t.estado))
+      btns.push(`<button class="btn btn-ghost" onclick="modalAsignar(${id})"><i class="fa-solid fa-user-plus"></i>Asignar</button>`);
+    acc.innerHTML = btns.join('');
+  } catch(e) {
+    document.getElementById('mtBody').innerHTML =
+      `<div style="text-align:center;padding:30px;color:var(--red)">${e.message}</div>`;
+  }
+}
+
+async function tickItem(idCheck, completado, idTarea) {
+  try {
+    await api.post('/hsk/checklist/' + idCheck + '/tick', { completado });
+    const el = document.getElementById('ci-' + idCheck);
+    if (el) {
+      el.className = 'check-item ' + (completado ? 'done' : '');
+      const box = el.querySelector('.check-box');
+      if (box) {
+        box.className = 'check-box ' + (completado ? 'done' : '');
+        box.innerHTML = completado ? '<i class="fa-solid fa-check" style="font-size:10px"></i>' : '';
+      }
+    }
+    cargarResumen();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function accionTarea(accion, id) {
+  try {
+    if (accion === 'completar') {
+      const obs = prompt('Observaciones (opcional):') || '';
+      await api.post('/hsk/tareas/' + id + '/completar', { observaciones: obs });
+    } else {
+      await api.post('/hsk/tareas/' + id + '/' + accion, {});
+    }
+    toast('Accion realizada', 'success');
+    cerrarModal('modalTarea');
+    await init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function verificarTarea(id, aprobado) {
+  const nota = aprobado ? '' : (prompt('Motivo del rechazo:') || '');
+  try {
+    await api.post('/hsk/tareas/' + id + '/verificar', { aprobado, nota });
+    toast(aprobado ? 'Habitacion disponible' : 'Tarea rechazada', 'success');
+    cerrarModal('modalTarea');
+    await init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function modalAsignar(id) {
+  const res = await api.get('/hsk/camareras');
+  const cam = prompt('Seleccione camarera (ingrese ID):\n' +
+    res.data.map(c => `${c.id}: ${c.nombres} (${c.tareasHoy} tareas hoy)`).join('\n'));
+  if (!cam) return;
+  try {
+    await api.post('/hsk/tareas/' + id + '/asignar', { idAsignado: parseInt(cam), idSupervisor: 0 });
+    toast('Tarea asignada', 'success');
+    cerrarModal('modalTarea');
+    await init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── NUEVA TAREA ────────────────────────────────────────────
+async function abrirNuevaTarea() {
+  try {
+    const [resHabs, resCam] = await Promise.all([
+      api.get('/habitaciones'),
+      api.get('/hsk/camareras')
+    ]);
+    const sel = document.getElementById('nHab');
+    sel.innerHTML = '<option value="">-- Seleccionar --</option>' +
+      resHabs.data.map(h =>
+        `<option value="${h.idHabitacion}" data-estado="${h.estado}">${h.numero} &mdash; ${h.tipo} (${h.estado})</option>`
+      ).join('');
+    const selCam = document.getElementById('nAsignado');
+    selCam.innerHTML = '<option value="0">Sin asignar</option>' +
+      resCam.data.map(c =>
+        `<option value="${c.id}">${c.nombres} (${c.tareasHoy} tareas)</option>`
+      ).join('');
+    document.getElementById('modalNueva').classList.add('open');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function onHabSelChange() {
+  const sel = document.getElementById('nHab');
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.estado === 'LIMPIEZA')
+    document.getElementById('nTipo').value = 'POST_CHECKOUT';
+}
+
+async function crearTarea() {
+  const idHab = parseInt(document.getElementById('nHab').value);
+  if (!idHab) { toast('Seleccione habitacion', 'warning'); return; }
+  const idAsignado = parseInt(document.getElementById('nAsignado').value);
+  try {
+    const res = await api.post('/hsk/tareas', {
+      idHabitacion:  idHab,
+      tipo:          document.getElementById('nTipo').value,
+      prioridad:     parseInt(document.getElementById('nPrioridad').value),
+      observaciones: document.getElementById('nObs').value
+    });
+    if (idAsignado > 0) {
+      await api.post('/hsk/tareas/' + res.data.idTarea + '/asignar', { idAsignado, idSupervisor: 0 });
+    }
+    toast('Tarea creada', 'success');
+    cerrarModal('modalNueva');
+    await init();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── HABITACIONES GRID ──────────────────────────────────────
+async function cargarHabitacionesGrid() {
+  try {
+    const res = await api.get('/habitaciones');
+    const habs = res.data || [];
+    const ESTADO_STYLE = {
+      LIBRE:      { bg: 'var(--green-light)',   color: 'var(--green)',  label: 'LIBRE' },
+      OCUPADA:    { bg: 'var(--accent-light)',   color: 'var(--accent)', label: 'OCUPADA' },
+      LIMPIEZA:   { bg: 'var(--yellow-light)',   color: 'var(--yellow)', label: 'LIMPIEZA' },
+      MANTENIMIENTO: { bg: 'var(--red-light)',   color: 'var(--red)',    label: 'MANT.' },
+      BLOQUEADA:  { bg: 'rgba(255,255,255,.06)', color: 'var(--text-muted)', label: 'BLOQ.' }
+    };
+    document.getElementById('habGrid').innerHTML = habs.map(h => {
+      const st = ESTADO_STYLE[h.estado] || ESTADO_STYLE['LIBRE'];
+      return `<div class="hab-room" onclick="toast('Hab ${h.numero}: ${h.estado}','info')">
+        <div class="num">${h.numero}</div>
+        <div class="text-sm text-muted">${h.tipo || ''}</div>
+        <div class="est" style="background:${st.bg};color:${st.color}">${st.label}</div>
+      </div>`;
+    }).join('') || '<div style="text-align:center;padding:40px;color:var(--text-faint);grid-column:1/-1">Sin habitaciones</div>';
+  } catch(e) {}
+}
+
+// ── PERSONAL ───────────────────────────────────────────────
+async function cargarCamareras() {
+  try {
+    const res = await api.get('/hsk/camareras');
+    const cont = document.getElementById('personalGrid');
+    if (!res.data.length) {
+      cont.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-faint);grid-column:1/-1">Sin personal registrado</div>';
+      return;
+    }
+    cont.innerHTML = res.data.map(c => {
+      const pct = c.tareasHoy > 0 ? Math.round((c.completadas / c.tareasHoy) * 100) : 0;
+      return `<div class="card card-sm">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">
+            ${(c.nombres||'?')[0].toUpperCase()}
+          </div>
+          <div>
+            <div style="font-weight:600;font-size:13px">${c.nombres}</div>
+            <div class="text-sm text-muted">${c.rol || 'Camarera'}</div>
+          </div>
+          <div style="margin-left:auto;text-align:right">
+            <div style="font-size:18px;font-weight:700;color:var(--green)">${c.completadas}</div>
+            <div class="text-sm text-muted">/ ${c.tareasHoy}</div>
+          </div>
+        </div>
+        <div class="cam-bar">
+          <div class="cam-bar-fill" style="width:${pct}%"></div>
+        </div>
+        <div class="text-sm text-muted" style="text-align:right;margin-top:4px">${pct}% completado</div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── OBJETO ENCONTRADO ──────────────────────────────────────
+async function modalObjeto(idTarea, idHab) {
+  const desc = prompt('Descripcion del objeto encontrado:');
+  if (!desc) return;
+  const ubi = prompt('Ubicacion exacta:') || '';
+  try {
+    await api.post('/hsk/objetos-encontrados', {
+      idTarea, idHabitacion: idHab, descripcion: desc, ubicacion: ubi
+    });
+    toast('Objeto registrado en Lost & Found', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── TABS PRINCIPAL ─────────────────────────────────────────
+function cambiarTab(tab, btn) {
+  document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+}
+
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// INIT + auto-refresh 60s
+init();
+setInterval(init, 60000);
+</script>
+</body>
+</html>

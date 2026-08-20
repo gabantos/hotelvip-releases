@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP — Agencias</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    .resumen-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px;
+    }
+    .resumen-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+    }
+    .resumen-card .lbl {
+      font-size: 10px; font-weight: 600; color: var(--text-faint);
+      text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px;
+    }
+    .resumen-card .val { font-size: 20px; font-weight: 700; }
+    .tarifa-input { width: 110px; text-align: right; }
+    .tbl-mini th { font-size: 10px; }
+    .modal-liq-tot {
+      background: var(--bg-input); border-radius: var(--radius-sm);
+      padding: 12px 16px; margin-top: 12px; font-size: 13px;
+    }
+    .modal-liq-tot .fila-tot { display: flex; justify-content: space-between; padding: 3px 0; }
+    .modal-liq-tot .fila-tot.grande { font-size: 16px; font-weight: 700; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px; }
+    .sel-agencia-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+    .sel-agencia-bar select { min-width: 260px; }
+    @media (max-width: 900px) { .resumen-grid { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+<div id="app-layout">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <div class="page-header">
+        <h1><i class="fa-solid fa-handshake"></i>Agencias</h1>
+        <div class="page-header-actions" id="agPageActions"></div>
+      </div>
+
+      <div class="tabs" id="agTabs">
+        <button class="tab-btn active" data-tab="agencias">
+          <i class="fa-solid fa-building"></i> Agencias
+        </button>
+        <button class="tab-btn" data-tab="cuenta">
+          <i class="fa-solid fa-file-invoice-dollar"></i> Cuenta corriente
+        </button>
+        <button class="tab-btn" data-tab="liquidaciones">
+          <i class="fa-solid fa-receipt"></i> Liquidaciones
+        </button>
+      </div>
+
+      <!-- ═══ TAB 1: LISTA DE AGENCIAS ═══ -->
+      <div class="tab-panel active" id="panel-agencias">
+        <div class="card">
+          <div class="table-wrapper">
+            <table>
+              <thead><tr>
+                <th>Agencia</th><th>RUC</th><th>Contacto</th><th>Telefono</th>
+                <th>Modelo</th><th>Reservas pend.</th><th>Estado</th><th></th>
+              </tr></thead>
+              <tbody id="tbodyAgencias"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ TAB 2: CUENTA CORRIENTE ═══ -->
+      <div class="tab-panel" id="panel-cuenta">
+        <div class="sel-agencia-bar">
+          <select id="selAgenciaCuenta" class="form-control" onchange="cargarCuenta()"></select>
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalAsignar()">
+            <i class="fa-solid fa-link"></i> Asignar reserva</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalAdelanto()">
+            <i class="fa-solid fa-money-bill-wave"></i> Adelanto</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalAjuste()">
+            <i class="fa-solid fa-scale-balanced"></i> Ajuste</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalCerrar()">
+            <i class="fa-solid fa-file-circle-check"></i> Cerrar liquidacion</button>
+        </div>
+
+        <div class="resumen-grid" id="ctaResumen"></div>
+
+        <div class="card" style="margin-bottom:16px">
+          <h3 style="font-size:13px;margin-bottom:10px">Movimientos pendientes de liquidar</h3>
+          <div class="table-wrapper"><table class="tbl-mini">
+            <thead><tr><th>Fecha</th><th>Concepto</th><th>Noches</th><th>Importe</th></tr></thead>
+            <tbody id="tbodyPendientes"></tbody>
+          </table></div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <h3 style="font-size:13px;margin-bottom:10px">Adelantos sin liquidar</h3>
+          <div class="table-wrapper"><table class="tbl-mini">
+            <thead><tr><th>Fecha</th><th>Monto</th><th>Metodo</th><th>Operacion</th><th>Obs.</th><th></th></tr></thead>
+            <tbody id="tbodyAdelantos"></tbody>
+          </table></div>
+        </div>
+
+        <div class="card">
+          <h3 style="font-size:13px;margin-bottom:10px">Ajustes sin liquidar</h3>
+          <div class="table-wrapper"><table class="tbl-mini">
+            <thead><tr><th>Fecha</th><th>Descripcion</th><th>Tipo</th><th>Monto</th><th></th></tr></thead>
+            <tbody id="tbodyAjustes"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ═══ TAB 3: LIQUIDACIONES ═══ -->
+      <div class="tab-panel" id="panel-liquidaciones">
+        <div class="sel-agencia-bar">
+          <select id="selAgenciaLiq" class="form-control" onchange="cargarLiquidaciones()"></select>
+        </div>
+        <div class="card">
+          <div class="table-wrapper"><table>
+            <thead><tr>
+              <th>#</th><th>Periodo</th><th>Bruto</th><th>Adelantos</th><th>Pagado</th>
+              <th>Abonos</th><th>Saldo</th><th>Estado</th><th></th>
+            </tr></thead>
+            <tbody id="tbodyLiquidaciones"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ═══ MODAL: AGENCIA ═══ -->
+<div class="modal-overlay" id="modalAgencia">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header"><h3 id="modalAgTitulo">Nueva Agencia</h3>
+      <button class="modal-close" onclick="cerrarModal('modalAgencia')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row cols-2">
+        <div class="form-group" style="flex:2"><label>Nombre *</label><input id="agNombre" class="form-control" maxlength="150"></div>
+        <div class="form-group"><label>RUC</label><input id="agRuc" class="form-control" maxlength="11"></div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group"><label>Contacto</label><input id="agContacto" class="form-control" maxlength="100"></div>
+        <div class="form-group"><label>Telefono</label><input id="agTelefono" class="form-control" maxlength="30"></div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group"><label>Email</label><input id="agEmail" class="form-control" maxlength="120"></div>
+        <div class="form-group"><label>Direccion</label><input id="agDireccion" class="form-control" maxlength="250"></div>
+      </div>
+      <div class="form-row cols-3">
+        <div class="form-group">
+          <label>Modelo de liquidacion</label>
+          <select id="agTipoLiq" class="form-control" onchange="onTipoLiqChange()">
+            <option value="NETO">Tarifa neta (la agencia paga al hotel)</option>
+            <option value="COMISION">Comision % (el hotel paga a la agencia)</option>
+          </select>
+        </div>
+        <div class="form-group" id="grpComision" style="display:none">
+          <label>Comision %</label><input id="agComisionPct" class="form-control" type="number" step="0.5" min="0" max="50" value="10">
+        </div>
+        <div class="form-group"><label>Credito maximo</label><input id="agCredito" class="form-control" type="number" step="0.01" min="0" value="0"></div>
+      </div>
+      <div class="form-group"><label>Notas</label><textarea id="agNotas" class="form-control" rows="2" maxlength="500"></textarea></div>
+
+      <div id="agTarifarioWrap" style="display:none">
+        <h3 style="font-size:13px;margin:14px 0 8px">Tarifario neto por noche</h3>
+        <div class="table-wrapper"><table class="tbl-mini">
+          <thead><tr><th>Tipo de habitacion</th><th>Precio publico</th><th>Tarifa agencia</th></tr></thead>
+          <tbody id="tbodyTarifas"></tbody>
+        </table></div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:6px">
+          Vacio = ese tipo no se negocia (se liquida al precio de la reserva).</p>
+      </div>
+
+      <label class="toggle-wrap" style="margin-top:12px">
+        <span class="toggle"><input type="checkbox" id="agActivo" checked><span class="toggle-slider"></span></span>
+        <span style="font-size:13px;margin-left:8px">Agencia activa</span>
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalAgencia')">Cancelar</button>
+      <button class="btn btn-primary" id="btnGuardarAg" onclick="guardarAgencia()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ASIGNAR RESERVA ═══ -->
+<div class="modal-overlay" id="modalAsignar">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header"><h3>Asignar reserva a la agencia</h3>
+      <button class="modal-close" onclick="cerrarModal('modalAsignar')">&times;</button></div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">
+        Reservas de los ultimos 90 dias sin agencia. Al asignar se congela la tarifa negociada vigente.</p>
+      <div class="table-wrapper" style="max-height:340px;overflow-y:auto"><table class="tbl-mini">
+        <thead><tr><th>Codigo</th><th>Huesped</th><th>Hab.</th><th>Entrada</th><th>Noches</th><th>Total</th><th></th></tr></thead>
+        <tbody id="tbodyReservasSin"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ADELANTO ═══ -->
+<div class="modal-overlay" id="modalAdelanto">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><h3>Registrar adelanto</h3>
+      <button class="modal-close" onclick="cerrarModal('modalAdelanto')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row cols-2">
+        <div class="form-group"><label>Fecha</label><input id="adFecha" type="date" class="form-control"></div>
+        <div class="form-group"><label>Monto *</label><input id="adMonto" type="number" step="0.01" min="0" class="form-control"></div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group"><label>Moneda</label>
+          <select id="adMoneda" class="form-control"><option value="PEN">Soles</option><option value="USD">Dolares</option></select></div>
+        <div class="form-group"><label>Tipo cambio</label><input id="adTC" type="number" step="0.001" value="3.70" class="form-control"></div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group"><label>Metodo</label>
+          <select id="adMetodo" class="form-control">
+            <option>Efectivo</option><option>Transferencia</option><option>Yape</option><option>Plin</option><option>Deposito</option>
+          </select></div>
+        <div class="form-group"><label>Nro. operacion</label><input id="adOperacion" class="form-control" maxlength="50"></div>
+      </div>
+      <div class="form-group"><label>Observaciones</label><input id="adObs" class="form-control" maxlength="300"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalAdelanto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarAdelanto()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: AJUSTE ═══ -->
+<div class="modal-overlay" id="modalAjuste">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header"><h3>Registrar ajuste manual</h3>
+      <button class="modal-close" onclick="cerrarModal('modalAjuste')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row cols-2">
+        <div class="form-group"><label>Fecha</label><input id="ajFecha" type="date" class="form-control"></div>
+        <div class="form-group"><label>Tipo</label>
+          <select id="ajTipo" class="form-control">
+            <option value="CARGO">Cargo (suma a la deuda)</option>
+            <option value="ABONO">Abono (resta a la deuda)</option>
+          </select></div>
+      </div>
+      <div class="form-group"><label>Descripcion *</label><input id="ajDesc" class="form-control" maxlength="200"></div>
+      <div class="form-group"><label>Monto *</label><input id="ajMonto" type="number" step="0.01" min="0" class="form-control"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalAjuste')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarAjuste()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: CERRAR LIQUIDACION ═══ -->
+<div class="modal-overlay" id="modalCerrar">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-header"><h3>Cerrar liquidacion</h3>
+      <button class="modal-close" onclick="cerrarModal('modalCerrar')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row cols-3">
+        <div class="form-group"><label>Desde</label><input id="liqDesde" type="date" class="form-control" onchange="previewLiq()"></div>
+        <div class="form-group"><label>Hasta</label><input id="liqHasta" type="date" class="form-control" onchange="previewLiq()"></div>
+        <div class="form-group"><label>Pago al cierre</label><input id="liqPagado" type="number" step="0.01" min="0" value="0" class="form-control" onchange="previewTotales()"></div>
+      </div>
+      <div class="table-wrapper" style="max-height:260px;overflow-y:auto"><table class="tbl-mini">
+        <thead><tr><th>Fecha</th><th>Concepto</th><th>Noches</th><th>Importe</th></tr></thead>
+        <tbody id="tbodyLiqPreview"></tbody>
+      </table></div>
+      <div class="modal-liq-tot" id="liqTotales"></div>
+      <div class="form-group" style="margin-top:10px"><label>Observaciones</label>
+        <input id="liqObs" class="form-control" maxlength="500"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalCerrar')">Cancelar</button>
+      <button class="btn btn-primary" id="btnCerrarLiq" onclick="confirmarCierre()">Cerrar liquidacion</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: DETALLE LIQUIDACION + ABONO ═══ -->
+<div class="modal-overlay" id="modalDetalleLiq">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-header"><h3 id="detLiqTitulo">Liquidacion</h3>
+      <button class="modal-close" onclick="cerrarModal('modalDetalleLiq')">&times;</button></div>
+    <div class="modal-body" id="detLiqBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalDetalleLiq')">Cerrar</button>
+      <button class="btn btn-warning" id="btnAnularLiq" onclick="anularLiquidacion()">Anular liquidacion</button>
+      <button class="btn btn-primary" onclick="registrarAbono()">Registrar abono</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script src="js/modules/agencias.js"></script>
+<script>
+  initLayout('agencias');
+  agenciasInit();
+</script>
+</body>
+</html>
