@@ -13,17 +13,24 @@
 ; nuevo-tenant.bat genera uno automaticamente al crear un tenant.
 ; ==============================================================
 
+; OJO: NO poner comentarios en la misma linea del valor. TIniFile los lee
+; como parte del valor (Puerto=9007 ;coment -> puerto invalido -> cae al
+; default 9006 y choca con el mutex del central). Cazado en el simulacro
+; de instalacion del 20-ago. Comentarios SIEMPRE en su propia linea.
+
 [Database]
 Servidor=127.0.0.1
 Puerto=3306
-BaseDatos=hotelvip_cliente   ; <-- una BD por tenant: hotelvip_<cliente>
+; una BD por tenant: hotelvip_<cliente>
+BaseDatos=hotelvip_cliente
 Usuario=root
 Clave=CAMBIAR_CLAVE
 AuthWindows=0
 MaxPool=20
 
 [API]
-Puerto=9007                  ; <-- puerto unico por tenant (central=9006)
+; puerto unico por tenant (el central usa 9006); INSTALAR.bat lo reemplaza
+Puerto=9006
 Host=0.0.0.0
 SecretKey=HotVip-SecretKey-2026-SistemasVIP
 TokenExpiraHoras=12
