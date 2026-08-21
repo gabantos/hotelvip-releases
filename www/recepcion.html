@@ -143,6 +143,31 @@
     .hab-numero { font-size: 22px; font-weight: 700; color: #fff; text-align: center; }
     .hab-tipo   { font-size: 10px; color: rgba(255,255,255,.45); text-align: center; margin-top: 2px; }
     .hab-precio { font-size: 10px; color: rgba(255,255,255,.3); text-align: center; margin-top: 3px; }
+
+    /* Nombre del huesped en la tarjeta: se ve de un vistazo quien esta en cada
+       habitacion, sin tener que abrir el detalle */
+    .hab-huesped {
+      font-size: 10px; color: rgba(255,255,255,.62); text-align: center;
+      margin-top: 3px; font-weight: 600; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* Ficha de la reserva dentro del panel de detalle */
+    .d-reserva {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 8px; padding: 11px 13px; margin: 12px 0;
+    }
+    .d-reserva-huesped { font-size: 14px; font-weight: 700; color: #fff; }
+    .d-reserva-cod {
+      font-size: 11px; color: rgba(255,255,255,.4);
+      margin-bottom: 8px; letter-spacing: .02em;
+    }
+    .aviso-inline {
+      background: rgba(245,158,11,.10); border: 1px solid rgba(245,158,11,.28);
+      color: #f5b642; border-radius: 8px; padding: 10px 12px;
+      font-size: 12px; line-height: 1.5; margin-bottom: 10px;
+    }
     .hab-estado-dot {
       position: absolute; top: 8px; right: 8px;
       width: 7px; height: 7px; border-radius: 50%;
@@ -376,14 +401,20 @@ function renderMapa(pisos) {
       <div class="hab-grid">`;
     for (const h of piso.habitaciones) {
       const sel = habSeleccionada && habSeleccionada.idHabitacion === h.idHabitacion ? ' selected' : '';
+      const est = estadoDe(h);
+      // Si hay huesped o reserva, se muestra en la tarjeta: el recepcionista
+      // ve de un vistazo QUIEN esta en cada habitacion.
+      const quien = h.reserva
+        ? `<div class="hab-huesped">${esc((h.reserva.huesped || '').split(' ')[0] || 'Huesped')}</div>`
+        : `<div class="hab-precio">S/ ${Number(h.precioBase).toFixed(0)}/noche</div>`;
       html += `
-        <div class="hab-card s-${h.estado}${sel}"
+        <div class="hab-card s-${est}${sel}"
              onclick="seleccionarHab(${h.idHabitacion})"
              id="hab-${h.idHabitacion}">
-          <div class="hab-estado-dot dot-${h.estado}"></div>
+          <div class="hab-estado-dot dot-${est}"></div>
           <div class="hab-numero">${h.numero}</div>
           <div class="hab-tipo">${h.tipo}</div>
-          <div class="hab-precio">S/ ${Number(h.precioBase).toFixed(0)}/noche</div>
+          ${quien}
         </div>`;
     }
     html += '</div></div>';
@@ -391,14 +422,28 @@ function renderMapa(pisos) {
   cont.innerHTML = html;
 }
 
+// Estado que se MUESTRA. El backend manda 'Disponible'/'Ocupada'... (asi esta
+// en la base) y ademas 'estadoVisual', que agrega 'Reservada' cuando la
+// habitacion tiene una reserva por entrar hoy. Se normaliza a MAYUSCULAS
+// porque los colores y clases CSS estan en mayusculas: antes no coincidian
+// y TODAS las habitaciones salian grises.
+function estadoDe(h) {
+  let e = (h.estadoVisual || h.estado || '').toUpperCase();
+  // Una habitacion sucia se muestra como LIMPIEZA aunque este 'Disponible'
+  if (e === 'DISPONIBLE' && /SUCIA|ENLIMPIEZA/i.test(h.estadoLimpieza || '')) e = 'LIMPIEZA';
+  if (e === 'DISPONIBLE' && /INSPECCION/i.test(h.estadoLimpieza || ''))       e = 'INSPECCION';
+  return e;
+}
+
 function actualizarKPIs(pisos) {
   let disp=0, ocup=0, res=0, limp=0;
   for (const p of pisos) {
     for (const h of p.habitaciones) {
-      if      (h.estado === 'DISPONIBLE') disp++;
-      else if (h.estado === 'OCUPADA')    ocup++;
-      else if (h.estado === 'RESERVADA')  res++;
-      else if (h.estado === 'LIMPIEZA')   limp++;
+      const e = estadoDe(h);
+      if      (e === 'DISPONIBLE') disp++;
+      else if (e === 'OCUPADA')    ocup++;
+      else if (e === 'RESERVADA')  res++;
+      else if (e === 'LIMPIEZA')   limp++;
     }
   }
   document.getElementById('kpiDisp').textContent = disp;
@@ -440,18 +485,35 @@ const ESTADO_ICON = {
 };
 
 function renderDetalle(h) {
-  const color    = ESTADO_COLOR[h.estado] || '#888';
-  const icon     = ESTADO_ICON[h.estado]  || 'fa-circle';
+  const est      = estadoDe(h);
+  const color    = ESTADO_COLOR[est] || '#888';
+  const icon     = ESTADO_ICON[est]  || 'fa-circle';
   const amenHtml = (h.amenidades||[]).map(a => `<span class="d-amenidad">${a}</span>`).join('');
-  const accionesHtml = getAcciones(h.estado, h.idHabitacion);
+  const accionesHtml = getAcciones(h);
+
+  // Ficha del huesped/reserva: lo primero que necesita ver recepcion
+  const r = h.reserva;
+  const resHtml = r ? `
+    <div class="d-reserva">
+      <div class="d-reserva-huesped">${esc(r.huesped || 'Sin nombre')}</div>
+      <div class="d-reserva-cod">${esc(r.codigo)} &middot; ${esc(r.estado)}</div>
+      <div class="d-row"><span>Estadia</span>
+        <strong>${fFechaCorta(r.entrada)} &rarr; ${fFechaCorta(r.salida)} (${r.noches}n)</strong></div>
+      <div class="d-row"><span>Total</span><strong>S/ ${Number(r.total).toFixed(2)}</strong></div>
+      <div class="d-row"><span>Pagado</span><strong>S/ ${Number(r.pagado).toFixed(2)}</strong></div>
+      <div class="d-row"><span>Saldo</span>
+        <strong style="color:${Number(r.saldo) > 0 ? 'var(--yellow)' : 'var(--green)'}">
+          S/ ${Number(r.saldo).toFixed(2)}</strong></div>
+    </div>` : '';
 
   document.getElementById('panelDetalle').innerHTML = `
     <div class="detalle-card">
       <div class="d-numero">${h.numero}</div>
       <div class="d-tipo">${h.tipo}</div>
       <div class="d-estado-badge" style="background:${color}22;color:${color};border:1px solid ${color}44">
-        <i class="fa-solid ${icon}" style="font-size:10px"></i>${h.estado}
+        <i class="fa-solid ${icon}" style="font-size:10px"></i>${est}
       </div>
+      ${resHtml}
       <div class="d-row">
         <span>Precio base</span>
         <strong>S/ ${Number(h.precioBase||0).toFixed(2)}/noche</strong>
@@ -474,62 +536,200 @@ function renderDetalle(h) {
   `;
 }
 
-function getAcciones(estado, idHab) {
-  const btns = [];
-  if (estado === 'DISPONIBLE') {
-    btns.push(`<button class="btn-accion btn-reservar" onclick="accion('RESERVAR',${idHab})"><i class="fa-solid fa-calendar-plus"></i>Nueva Reserva</button>`);
-    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('CHECKIN',${idHab})"><i class="fa-solid fa-right-to-bracket"></i>Check-in Directo</button>`);
-    btns.push(`<button class="btn-accion btn-mantto"   onclick="accion('MANTENIMIENTO',${idHab})"><i class="fa-solid fa-wrench"></i>Poner en Mantenimiento</button>`);
-    btns.push(`<button class="btn-accion btn-bloquear" onclick="accion('BLOQUEADA',${idHab})"><i class="fa-solid fa-lock"></i>Bloquear</button>`);
-  } else if (estado === 'RESERVADA') {
-    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('CHECKIN',${idHab})"><i class="fa-solid fa-right-to-bracket"></i>Realizar Check-in</button>`);
-    btns.push(`<button class="btn-accion btn-bloquear" onclick="accion('DISPONIBLE',${idHab})"><i class="fa-solid fa-xmark"></i>Cancelar Reserva</button>`);
-  } else if (estado === 'OCUPADA') {
-    btns.push(`<button class="btn-accion btn-checkout" onclick="accion('LIMPIEZA',${idHab})"><i class="fa-solid fa-right-from-bracket"></i>Realizar Check-out</button>`);
-  } else if (estado === 'LIMPIEZA') {
-    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('DISPONIBLE',${idHab})"><i class="fa-solid fa-check"></i>Marcar como Limpia</button>`);
-    btns.push(`<button class="btn-accion btn-mantto"   onclick="accion('INSPECCION',${idHab})"><i class="fa-solid fa-magnifying-glass"></i>Enviar a Inspeccion</button>`);
-  } else if (estado === 'INSPECCION') {
-    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('DISPONIBLE',${idHab})"><i class="fa-solid fa-check-double"></i>Aprobar Limpieza</button>`);
-    btns.push(`<button class="btn-accion btn-limpieza" onclick="accion('LIMPIEZA',${idHab})"><i class="fa-solid fa-broom"></i>Volver a Limpiar</button>`);
-  } else if (estado === 'MANTENIMIENTO') {
-    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('DISPONIBLE',${idHab})"><i class="fa-solid fa-check"></i>Finalizar Mantenimiento</button>`);
-  } else if (estado === 'BLOQUEADA') {
-    btns.push(`<button class="btn-accion btn-checkin"  onclick="accion('DISPONIBLE',${idHab})"><i class="fa-solid fa-lock-open"></i>Desbloquear</button>`);
+// Acciones segun el momento del huesped, no solo el color de la habitacion.
+// ANTES todos los botones hacian lo mismo (cambiar el color) y ninguno tocaba
+// la reserva: el "check-out" no cobraba nada y el "check-in" no registraba a
+// nadie. Ahora cada boton dispara la operacion real.
+function getAcciones(h) {
+  const est   = estadoDe(h);
+  const id    = h.idHabitacion;
+  const r     = h.reserva;
+  const btns  = [];
+
+  if (est === 'DISPONIBLE') {
+    btns.push(`<button class="btn-accion btn-reservar" onclick="nuevaReserva(${id},false)"><i class="fa-solid fa-calendar-plus"></i>Nueva Reserva</button>`);
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="nuevaReserva(${id},true)"><i class="fa-solid fa-person-walking-luggage"></i>Huesped sin reserva (walk-in)</button>`);
+    btns.push(`<button class="btn-accion btn-mantto"   onclick="cambiarEstadoFisico('Mantenimiento',${id})"><i class="fa-solid fa-wrench"></i>Poner en Mantenimiento</button>`);
+    btns.push(`<button class="btn-accion btn-bloquear" onclick="cambiarEstadoFisico('Bloqueada',${id})"><i class="fa-solid fa-lock"></i>Bloquear</button>`);
+
+  } else if (est === 'RESERVADA' && r) {
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="hacerCheckin(${r.idReserva})"><i class="fa-solid fa-right-to-bracket"></i>Check-in de ${esc((r.huesped||'').split(' ')[0])}</button>`);
+    btns.push(`<button class="btn-accion btn-reservar" onclick="verReserva(${r.idReserva})"><i class="fa-solid fa-eye"></i>Ver la reserva</button>`);
+    btns.push(`<button class="btn-accion btn-bloquear" onclick="cancelarReserva(${r.idReserva})"><i class="fa-solid fa-xmark"></i>Cancelar reserva</button>`);
+
+  } else if (est === 'OCUPADA' && r) {
+    btns.push(`<button class="btn-accion btn-checkout" onclick="hacerCheckout(${r.idReserva}, ${Number(r.saldo)||0})"><i class="fa-solid fa-right-from-bracket"></i>Check-out y cobro</button>`);
+    btns.push(`<button class="btn-accion btn-reservar" onclick="irAServicios(${r.idReserva})"><i class="fa-solid fa-concierge-bell"></i>Cargar consumo a la cuenta</button>`);
+    btns.push(`<button class="btn-accion btn-reservar" onclick="verReserva(${r.idReserva})"><i class="fa-solid fa-file-lines"></i>Ver la cuenta</button>`);
+
+  } else if (est === 'OCUPADA' && !r) {
+    // Ocupada sin reserva asociada: dato inconsistente, se avisa en vez de
+    // ofrecer un check-out que no tendria a que aplicarse.
+    btns.push(`<div class="aviso-inline">Esta habitacion figura ocupada pero no tiene ninguna reserva activa. Registra al huesped o liberala.</div>`);
+    btns.push(`<button class="btn-accion btn-checkin" onclick="nuevaReserva(${id},true)"><i class="fa-solid fa-user-plus"></i>Registrar al huesped</button>`);
+    btns.push(`<button class="btn-accion btn-limpieza" onclick="cambiarEstadoFisico('Disponible',${id},'Sucia')"><i class="fa-solid fa-broom"></i>Liberar y enviar a limpieza</button>`);
+
+  } else if (est === 'LIMPIEZA') {
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="cambiarLimpieza('Limpia',${id})"><i class="fa-solid fa-check"></i>Marcar como limpia</button>`);
+    btns.push(`<button class="btn-accion btn-mantto"   onclick="cambiarLimpieza('Inspeccion',${id})"><i class="fa-solid fa-magnifying-glass"></i>Enviar a inspeccion</button>`);
+
+  } else if (est === 'INSPECCION') {
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="cambiarLimpieza('Limpia',${id})"><i class="fa-solid fa-check-double"></i>Aprobar limpieza</button>`);
+    btns.push(`<button class="btn-accion btn-limpieza" onclick="cambiarLimpieza('Sucia',${id})"><i class="fa-solid fa-broom"></i>Volver a limpiar</button>`);
+
+  } else if (est === 'MANTENIMIENTO') {
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="cambiarEstadoFisico('Disponible',${id})"><i class="fa-solid fa-check"></i>Finalizar mantenimiento</button>`);
+
+  } else if (est === 'BLOQUEADA') {
+    btns.push(`<button class="btn-accion btn-checkin"  onclick="cambiarEstadoFisico('Disponible',${id})"><i class="fa-solid fa-lock-open"></i>Desbloquear</button>`);
   }
   return btns.join('');
 }
 
-async function accion(nuevoEstado, idHab) {
-  const LABEL_ACCION = {
-    CHECKIN:        'Realizar Check-in',
-    LIMPIEZA:       'Enviar a Limpieza / Check-out',
-    RESERVAR:       'Crear nueva Reserva',
-    DISPONIBLE:     'Marcar como Disponible',
-    MANTENIMIENTO:  'Poner en Mantenimiento',
-    BLOQUEADA:      'Bloquear habitacion',
-    INSPECCION:     'Enviar a Inspeccion'
-  };
+/* ═══════════════════════════════════════════════════════════
+   ACCIONES REALES
+   Cada boton hace la operacion de verdad (crea la reserva, hace
+   el check-in, cobra el saldo). Los cambios de estado sueltos
+   quedan solo para limpieza y mantenimiento, que es lo unico
+   que de verdad es "pintar la habitacion".
+═══════════════════════════════════════════════════════════ */
 
+// --- 1. Reservar / walk-in: se abre el alta con la habitacion ya elegida ---
+function nuevaReserva(idHab, walkin) {
+  const hoy    = new Date();
+  const manana = new Date(Date.now() + 86400000);
+  const iso    = d => d.toISOString().split('T')[0];
+  const params = new URLSearchParams({
+    nueva:   '1',
+    hab:     idHab,
+    entrada: iso(hoy),
+    salida:  iso(manana)
+  });
+  // walk-in = huesped que llega sin reserva: se crea la reserva y se le hace
+  // el check-in de una, sin obligar a buscarla despues en otra pantalla.
+  if (walkin) params.set('walkin', '1');
+  window.location.href = 'reservas.html?' + params.toString();
+}
+
+function verReserva(idReserva) {
+  window.location.href = 'reservas.html?ver=' + idReserva;
+}
+
+function irAServicios(idReserva) {
+  window.location.href = 'servicios.html?reserva=' + idReserva;
+}
+
+// --- 2. Check-in real de una reserva existente ---
+async function hacerCheckin(idReserva) {
+  const h = habSeleccionada;
   mostrarConfirm(
-    LABEL_ACCION[nuevoEstado] || nuevoEstado,
-    `Habitacion ${habSeleccionada?.numero || idHab}`,
-    `Nuevo estado: ${nuevoEstado}`,
+    'Confirmar check-in',
+    `Habitacion ${h?.numero || ''} — ${h?.reserva?.huesped || ''}`,
+    'El huesped queda alojado y la habitacion pasa a ocupada.',
     async function() {
       try {
-        await api.put('/habitaciones/' + idHab + '/estado', {
-          estado: nuevoEstado,
-          observaciones: ''
-        });
-        toast('Estado actualizado a ' + nuevoEstado, 'success');
+        await api.post('/reservas/' + idReserva + '/checkin', {});
+        toast('Check-in realizado', 'success');
         await cargarMapa();
-        if (habSeleccionada && habSeleccionada.idHabitacion === idHab)
-          seleccionarHab(idHab);
-      } catch(e) {
-        toast(e.message, 'error');
-      }
+        if (h) seleccionarHab(h.idHabitacion);
+      } catch (e) { toast(e.message, 'error'); }
     }
   );
+}
+
+// --- 3. Check-out: si debe, se cobra ANTES de liberar la habitacion ---
+async function hacerCheckout(idReserva, saldo) {
+  const h = habSeleccionada;
+  if (Number(saldo) > 0.005) {
+    // Con saldo pendiente NO se libera la habitacion: se manda a cobrar.
+    // (Antes el check-out solo pintaba la habitacion y el huesped se iba
+    //  sin pagar.)
+    mostrarConfirm(
+      'Falta cobrar antes del check-out',
+      `Habitacion ${h?.numero || ''} — saldo S/ ${Number(saldo).toFixed(2)}`,
+      'Se abrira Caja para cobrar el saldo. Al quedar en cero podras cerrar el check-out.',
+      function() { window.location.href = 'caja.html?reserva=' + idReserva + '&cobrar=' + saldo; }
+    );
+    return;
+  }
+  mostrarConfirm(
+    'Confirmar check-out',
+    `Habitacion ${h?.numero || ''} — ${h?.reserva?.huesped || ''}`,
+    'La cuenta esta saldada. La habitacion quedara en limpieza.',
+    async function() {
+      try {
+        await api.post('/reservas/' + idReserva + '/checkout', {});
+        toast('Check-out realizado. Habitacion enviada a limpieza.', 'success');
+        await cargarMapa();
+        if (h) seleccionarHab(h.idHabitacion);
+      } catch (e) { toast(e.message, 'error'); }
+    }
+  );
+}
+
+async function cancelarReserva(idReserva) {
+  const h = habSeleccionada;
+  mostrarConfirm(
+    'Cancelar la reserva',
+    `Habitacion ${h?.numero || ''} — ${h?.reserva?.huesped || ''}`,
+    'La reserva queda cancelada y la habitacion se libera.',
+    async function() {
+      try {
+        await api.post('/reservas/' + idReserva + '/cancelar', { motivo: 'Cancelada desde recepcion' });
+        toast('Reserva cancelada', 'success');
+        await cargarMapa();
+        if (h) seleccionarHab(h.idHabitacion);
+      } catch (e) { toast(e.message, 'error'); }
+    }
+  );
+}
+
+// --- 4. Estado FISICO de la habitacion (solo limpieza y mantenimiento) ---
+async function cambiarEstadoFisico(estado, idHab, limpieza) {
+  const LABEL = {
+    'Disponible':    'Marcar como disponible',
+    'Mantenimiento': 'Poner en mantenimiento',
+    'Bloqueada':     'Bloquear la habitacion'
+  };
+  mostrarConfirm(
+    LABEL[estado] || estado,
+    `Habitacion ${habSeleccionada?.numero || idHab}`,
+    '',
+    async function() {
+      try {
+        const body = { estado: estado, observaciones: '' };
+        if (limpieza) body.estadoLimpieza = limpieza;
+        await api.put('/habitaciones/' + idHab + '/estado', body);
+        toast('Habitacion actualizada', 'success');
+        await cargarMapa();
+        seleccionarHab(idHab);
+      } catch (e) { toast(e.message, 'error'); }
+    }
+  );
+}
+
+async function cambiarLimpieza(estadoLimpieza, idHab) {
+  try {
+    await api.put('/habitaciones/' + idHab + '/estado', {
+      estado: 'Disponible',
+      estadoLimpieza: estadoLimpieza,
+      observaciones: ''
+    });
+    toast(estadoLimpieza === 'Limpia' ? 'Habitacion lista' : 'Habitacion actualizada', 'success');
+    await cargarMapa();
+    seleccionarHab(idHab);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function fFechaCorta(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}`;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // Alerta canales: escuchar badge update de layout.js

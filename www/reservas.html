@@ -613,6 +613,12 @@ let calAnio = new Date().getFullYear();
 let reservasCalendario = [];
 let pasoActual  = 1;
 let habSelData  = null;
+
+// Recepcion abre esta pantalla con la habitacion ya elegida. Sin esto el
+// recepcionista tenia que volver a buscar la habitacion que acababa de tocar.
+const QS               = new URLSearchParams(location.search);
+const modoWalkin       = QS.get('walkin') === '1';
+const volverARecepcion = QS.has('hab');
 let hspData     = { id: null, nuevo: false };
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -1120,7 +1126,7 @@ async function crearReserva() {
 
     const c = habSelData.cotizacion;
     const pago = getPagoData();
-    await api.post('/reservas', {
+    const resCreada = await api.post('/reservas', {
       idHabitacion: habSelData.id,
       idHuesped,
       fechaEntrada: document.getElementById('nFechaEntrada').value,
@@ -1143,8 +1149,25 @@ async function crearReserva() {
       estadoPago:   pago.estadoPago   || (pago.metodoPago ? 'PAGADO' : 'PENDIENTE'),
     });
 
-    toast('Reserva creada exitosamente', 'success');
     cerrarModal('modalNueva');
+
+    // Walk-in: el huesped esta parado en el mostrador. Se le hace el check-in
+    // de una y se vuelve al mapa, en vez de dejar la reserva suelta para que
+    // recepcion la tenga que buscar despues en otra pantalla.
+    const idNueva = resCreada?.data?.idReserva || resCreada?.idReserva;
+    if (modoWalkin && idNueva) {
+      try {
+        await api.post('/reservas/' + idNueva + '/checkin', {});
+        toast('Huesped registrado y alojado', 'success');
+      } catch (e) {
+        toast('Reserva creada, pero el check-in fallo: ' + e.message, 'warning');
+      }
+      window.location.href = 'recepcion.html';
+      return;
+    }
+
+    toast('Reserva creada exitosamente', 'success');
+    if (volverARecepcion) { window.location.href = 'recepcion.html'; return; }
     cargarCalendario();
   } catch(e) {
     toast(e.message, 'error');
@@ -1220,6 +1243,33 @@ function getPagoData() {
 // ── INIT ─────────────────────────────────────────────────────
 document.getElementById('fDesde').value = new Date().toISOString().split('T')[0];
 cargarCalendario();
+
+// Si Recepcion mando una habitacion, se abre el alta ya cargada con esa
+// habitacion y esas fechas: el recepcionista sigue donde estaba.
+(async function desdeRecepcion() {
+  if (QS.get('ver')) {                       // "Ver la reserva" desde Recepcion
+    verDetalle(parseInt(QS.get('ver')));
+    return;
+  }
+  if (QS.get('nueva') !== '1') return;
+
+  abrirModalNueva();
+  const ent = QS.get('entrada'), sal = QS.get('salida'), hab = QS.get('hab');
+  if (ent) document.getElementById('nFechaEntrada').value = ent;
+  if (sal) document.getElementById('nFechaSalida').value  = sal;
+  await onFechaChange();                     // llena las habitaciones libres
+  if (hab) {
+    const sel = document.getElementById('nHabitacion');
+    sel.value = hab;
+    if (sel.value === String(hab)) onHabChange();
+    else toast('Esa habitacion ya no esta libre en las fechas elegidas', 'warning');
+  }
+  if (modoWalkin) {
+    document.querySelector('#modalNueva .modal-header h3').textContent =
+      'Huesped sin reserva (walk-in)';
+    toast('Al confirmar se registra y se le hace el check-in', 'info');
+  }
+})();
 </script>
 </body>
 </html>
