@@ -48,8 +48,11 @@ const api = {
       const data = await res.json();
 
       if (res.status === 401) {
+        // Sesion vencida -> a la pantalla de ingreso.
+        // OJO: iba a '/index.html', que NO EXISTE: el usuario terminaba
+        // en un "Not Found" del navegador en vez de poder volver a entrar.
         this.clearAuth();
-        window.location.href = '/index.html';
+        window.location.href = '/app/login.html';
         return null;
       }
       if (!data.success) {
