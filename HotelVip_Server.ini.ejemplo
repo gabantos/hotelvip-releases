@@ -1,4 +1,4 @@
-; ==============================================================
+﻿; ==============================================================
 ; HotelVip_Server.ini.ejemplo  -  PLANTILLA para tenants nuevos
 ;
 ; Patron multitenant SistemasVIP:
@@ -91,3 +91,20 @@ MachineId=
 Web=.\www\
 Logs=.\Logs
 Backups=.\Backups
+; Segunda copia FUERA del disco del sistema. Apuntar a una carpeta de
+; Google Drive / OneDrive (sincroniza sola a la nube), de red o un USB fijo.
+; Un respaldo en el mismo disco que la base NO protege de un disco muerto.
+BackupExterno=
+
+[Channel]
+; Sincronizacion con Booking / Airbnb / Expedia por calendario iCal.
+; La API de Booking exige ser partner certificado (meses de tramite); el
+; iCal no pide permisos y es lo que usa un hotel boutique.
+; Poner en 1 cuando el hotel ya pego las URLs de sus calendarios.
+SyncActivo=0
+; Token del .ics que publicamos y de los webhooks de canales. NO compartir.
+; El instalador genera uno distinto por hotel.
+TokenWebhook=
+; URL por la que el canal alcanza este equipo (Cloudflare Tunnel).
+; Necesaria solo para EXPORTAR nuestro calendario hacia los canales.
+UrlPublica=

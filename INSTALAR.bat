@@ -75,7 +75,7 @@ REM MYSQL_PWD evita que la clave quede en la linea de comandos
 set "MYSQL_PWD=%DB_ADMPASS%"
 
 echo.
-echo [1/5] Creando base de datos %DB_NAME%...
+echo [1/7] Creando base de datos %DB_NAME%...
 "%MYSQL%" -h %DB_HOST% -P %DB_PORT% -u %DB_ADMIN% --skip-ssl -e "CREATE DATABASE IF NOT EXISTS %DB_NAME% CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci;"
 if errorlevel 1 (
     color 0C
@@ -87,7 +87,7 @@ if errorlevel 1 (
 echo    OK
 
 echo.
-echo [2/5] Aplicando estructura...
+echo [2/7] Aplicando estructura...
 for %%F in (01_Estructura.sql 02_Vistas.sql 03_StoredProcedures.sql 04_DatosIniciales.sql) do (
     if exist "SQL\%%F" (
         echo    - %%F
@@ -104,7 +104,7 @@ for %%F in (01_Estructura.sql 02_Vistas.sql 03_StoredProcedures.sql 04_DatosInic
 echo    OK
 
 echo.
-echo [3/5] Aplicando actualizaciones de base...
+echo [3/7] Aplicando actualizaciones de base...
 if not exist "SQL\updates" mkdir "SQL\updates" >nul 2>nul
 if exist "SQL\updates\.last_update" del /q "SQL\updates\.last_update"
 for %%F in (SQL\updates\*.sql) do (
@@ -124,7 +124,7 @@ set "MYSQL_PWD="
 echo    OK
 
 echo.
-echo [4/5] Configurando HotelVip_Server.ini...
+echo [4/7] Configurando HotelVip_Server.ini...
 if not exist "HotelVip_Server.ini" (
     if exist "HotelVip_Server.ini.ejemplo" copy /y "HotelVip_Server.ini.ejemplo" "HotelVip_Server.ini" >nul
 )
@@ -143,7 +143,7 @@ powershell -NoProfile -Command ^
 echo    OK
 
 echo.
-echo [5/6] Conexion con las reservas web (opcional)
+echo [5/7] Conexion con las reservas web (opcional)
 echo    Si este hotel tiene pagina web con motor de reservas, ingrese su
 echo    token de enlace (lo entrega SistemasVIP). Enter para omitir.
 set "SYNC_TOKEN="
@@ -162,7 +162,29 @@ if not "%SYNC_TOKEN%"=="" (
 )
 
 echo.
-echo [6/6] Inicio automatico con Windows
+echo [6/7] Copia de seguridad fuera de esta computadora
+echo    El sistema guarda una copia de la informacion todos los dias.
+echo    Conviene que ademas quede una copia FUERA de esta PC, por si el
+echo    disco falla o la roban. Lo mas practico: una carpeta de Google
+echo    Drive o OneDrive de este equipo, que sube sola a la nube.
+echo.
+echo    Ejemplo: C:\Users\%USERNAME%\Google Drive\Respaldos HotelVIP
+echo    Enter para omitir (se puede configurar despues).
+set "BK_EXT="
+set /p BK_EXT="Carpeta para la copia externa: "
+if not "%BK_EXT%"=="" (
+    if not exist "%BK_EXT%" mkdir "%BK_EXT%" 2>nul
+    powershell -NoProfile -Command ^
+      "$p='HotelVip_Server.ini'; $t=Get-Content $p -Raw;" ^
+      "$t=$t -replace '(?m)^BackupExterno=.*','BackupExterno=%BK_EXT%';" ^
+      "Set-Content $p $t -Encoding UTF8"
+    echo    OK - cada respaldo se copiara tambien a esa carpeta
+) else (
+    echo    Omitido - la copia quedara solo en esta PC
+)
+
+echo.
+echo [7/7] Inicio automatico con Windows
 set /p AUTORUN="Que HotelVIP arranque solo al prender la PC? (S/N): "
 if /i "%AUTORUN%"=="S" (
     powershell -NoProfile -Command ^
