@@ -23,6 +23,98 @@
       color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;
       border-bottom:1px solid rgba(255,255,255,.06)}
     .cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+
+    /* ══ TIMELINE (tape chart): filas = habitaciones, columnas = dias ══
+       --dw es el ancho de un dia; las barras se posicionan con calc() sobre
+       esa misma medida, por eso cabecera, celdas y barras siempre calzan. */
+    .tl-wrap { background: var(--surface,#111C2E); border-radius: 12px; overflow: hidden; }
+    .tl-scroll { overflow-x: auto; overflow-y: visible; }
+    .tl-fila {
+      --dw: 46px; --hw: 132px;
+      display: flex; position: relative; align-items: stretch;
+      min-width: calc(var(--hw) + var(--dw) * 31);
+    }
+    .tl-fila-cab { position: sticky; top: 0; z-index: 6; background: #0d1626; }
+
+    .tl-hab {
+      width: var(--hw); min-width: var(--hw); flex-shrink: 0;
+      padding: 7px 10px; border-right: 1px solid rgba(255,255,255,.10);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      position: sticky; left: 0; z-index: 4; background: #101b2d;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .tl-hab strong { font-size: 13px; color: #fff; font-weight: 700; }
+    .tl-hab span   { font-size: 10.5px; color: rgba(255,255,255,.42); }
+    .tl-hab-cab { background: #0d1626; z-index: 7; font-size: 11px;
+                  color: rgba(255,255,255,.5); font-weight: 700; }
+
+    .tl-dia {
+      width: var(--dw); min-width: var(--dw); flex-shrink: 0;
+      padding: 5px 0 6px; text-align: center;
+      border-right: 1px solid rgba(255,255,255,.05);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      display: flex; flex-direction: column; gap: 1px;
+    }
+    .tl-dsem { font-size: 9px; color: rgba(255,255,255,.35); text-transform: uppercase; }
+    .tl-dnum { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.85); }
+    .tl-pct  { font-size: 9px; color: rgba(255,255,255,.4); font-weight: 600; }
+    .tl-pct.alto { color: #f59e0b; }
+    .tl-dia.finde { background: rgba(255,255,255,.028); }
+    .tl-dia.hoy   { background: rgba(56,132,255,.16); box-shadow: inset 0 -2px 0 var(--accent,#3884ff); }
+
+    .tl-celda {
+      width: var(--dw); min-width: var(--dw); flex-shrink: 0; height: 40px;
+      border-right: 1px solid rgba(255,255,255,.05);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      cursor: pointer; transition: background .1s;
+    }
+    .tl-celda:hover  { background: rgba(56,132,255,.14); }
+    .tl-celda.finde  { background: rgba(255,255,255,.028); }
+    .tl-celda.hoy    { background: rgba(56,132,255,.09); }
+    .tl-celda.pasado { cursor: default; opacity: .5; }
+    .tl-celda.pasado:hover { background: none; }
+
+    .tl-piso {
+      padding: 6px 12px; font-size: 10.5px; font-weight: 800;
+      letter-spacing: .06em; text-transform: uppercase;
+      color: rgba(255,255,255,.45); background: rgba(255,255,255,.045);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      position: sticky; left: 0;
+    }
+
+    /* La barra se ancla al inicio de su dia y mide tantos dias como noches */
+    .tl-barra {
+      position: absolute; top: 5px; height: 30px; z-index: 2;
+      left:   calc(var(--hw) + (var(--ini) - 1) * var(--dw) + 3px);
+      width:  calc(var(--largo) * var(--dw) - 6px);
+      border-radius: 6px; padding: 0 8px; cursor: pointer;
+      display: flex; align-items: center; gap: 5px; overflow: hidden;
+      font-size: 11px; font-weight: 700; color: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.32);
+      transition: transform .1s, filter .1s;
+    }
+    .tl-barra:hover { transform: translateY(-1px); filter: brightness(1.14); z-index: 3; }
+    .tl-barra span  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tl-debe { font-size: 10px; color: #fde68a; flex-shrink: 0; }
+    /* Estadia que empieza o termina fuera del mes: se corta el borde */
+    .tl-barra.corta-izq { border-top-left-radius: 0; border-bottom-left-radius: 0;
+                          border-left: 3px solid rgba(255,255,255,.65); }
+    .tl-barra.corta-der { border-top-right-radius: 0; border-bottom-right-radius: 0;
+                          border-right: 3px solid rgba(255,255,255,.65); }
+
+    .tl-barra.e-Confirmada { background: #3b82f6; }
+    .tl-barra.e-Pendiente  { background: #f59e0b; color: #422b06; }
+    .tl-barra.e-CheckIn    { background: #10b981; }
+    .tl-barra.e-CheckOut   { background: #6b7280; }
+    .tl-barra.e-NoShow     { background: #7c2d12; }
+
+    .tl-leyenda {
+      display: flex; align-items: center; gap: 15px; flex-wrap: wrap;
+      padding: 9px 14px; font-size: 11.5px; color: rgba(255,255,255,.6);
+      border-top: 1px solid rgba(255,255,255,.07);
+    }
+    .tl-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+    .tl-mini { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
     .cal-dia{min-height:90px;border:1px solid rgba(255,255,255,.04);
       padding:6px;cursor:pointer;transition:background .15s;vertical-align:top}
     .cal-dia:hover{background:rgba(255,255,255,.03)}
@@ -174,20 +266,26 @@
             <span>Check-outs hoy: <strong id="lblCheckoutsHoy" style="color:#E74C3C">—</strong></span>
           </div>
         </div>
-        <div class="calendario">
-          <div class="cal-header">
-            <div class="cal-dia-nombre">Lun</div>
-            <div class="cal-dia-nombre">Mar</div>
-            <div class="cal-dia-nombre">Mie</div>
-            <div class="cal-dia-nombre">Jue</div>
-            <div class="cal-dia-nombre">Vie</div>
-            <div class="cal-dia-nombre">Sab</div>
-            <div class="cal-dia-nombre">Dom</div>
-          </div>
-          <div class="cal-grid" id="calGrid">
-            <div style="grid-column:span 7;text-align:center;padding:40px;color:rgba(255,255,255,.2)">
-              <i class="fa fa-spinner fa-spin"></i> Cargando...
+        <!-- Timeline: una fila por habitacion, una columna por dia.
+             Es la vista estandar de hotel: se ven las estadias como barras
+             y, sobre todo, los HUECOS vendibles entre reservas. -->
+        <div class="tl-wrap">
+          <div class="tl-scroll" id="tlScroll">
+            <div class="tl-cabecera" id="tlCabecera"></div>
+            <div id="tlCuerpo">
+              <div style="padding:40px;text-align:center;color:rgba(255,255,255,.25)">
+                <i class="fa fa-spinner fa-spin"></i> Cargando...
+              </div>
             </div>
+          </div>
+          <div class="tl-leyenda">
+            <span><i class="tl-mini" style="background:#3b82f6"></i>Confirmada</span>
+            <span><i class="tl-mini" style="background:#f59e0b"></i>Pendiente</span>
+            <span><i class="tl-mini" style="background:#10b981"></i>Alojado</span>
+            <span><i class="tl-mini" style="background:#6b7280"></i>Salio</span>
+            <span style="margin-left:auto;color:rgba(255,255,255,.35)">
+              Clic en una barra para ver la reserva &middot; clic en un dia libre para reservar
+            </span>
           </div>
         </div>
       </div>
@@ -611,6 +709,8 @@ initLayout('reservas');
 let calMes  = new Date().getMonth() + 1;
 let calAnio = new Date().getFullYear();
 let reservasCalendario = [];
+let habitacionesTL     = [];   // filas del timeline (todas las habitaciones)
+let totalHabitaciones  = 0;    // para el % de ocupacion por dia
 let pasoActual  = 1;
 let habSelData  = null;
 
@@ -645,6 +745,16 @@ function cambiarMes(d) {
 async function cargarCalendario() {
   document.getElementById('calTitulo').textContent = MESES[calMes-1] + ' ' + calAnio;
   try {
+    // El timeline necesita TODAS las habitaciones (tambien las que no tienen
+    // ninguna reserva: son justamente las que hay que vender).
+    if (!habitacionesTL.length) {
+      const mapa = await api.get('/habitaciones/mapa');
+      for (const p of (mapa.data || []))
+        for (const h of p.habitaciones)
+          habitacionesTL.push({ idHabitacion: h.idHabitacion, numero: h.numero,
+                                tipo: h.tipo, piso: p.nombre });
+      totalHabitaciones = habitacionesTL.length;
+    }
     const res = await api.get('/reservas/calendario?mes=' + calMes + '&anio=' + calAnio);
     reservasCalendario = res.data || [];
     renderCalendario();
@@ -653,54 +763,112 @@ async function cargarCalendario() {
 }
 
 function renderCalendario() {
-  const grid = document.getElementById('calGrid');
-  const hoy  = new Date();
-  const primer = new Date(calAnio, calMes-1, 1);
-  let diaSemana = primer.getDay();
-  diaSemana = diaSemana === 0 ? 6 : diaSemana - 1;
+  const cab  = document.getElementById('tlCabecera');
+  const cuer = document.getElementById('tlCuerpo');
+  if (!cab || !cuer) return;
 
-  const diasEnMes = new Date(calAnio, calMes, 0).getDate();
-  const diasMesAnt = new Date(calAnio, calMes-1, 0).getDate();
-  const totalCeldas = Math.ceil((diaSemana + diasEnMes) / 7) * 7;
+  const diasMes = new Date(calAnio, calMes, 0).getDate();
+  const hoyISO  = new Date().toISOString().split('T')[0];
+  const iso = d => `${calAnio}-${String(calMes).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const DIAS = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
 
-  let html = '';
-  for (let i = 0; i < totalCeldas; i++) {
-    let dia, mes, anio, otroMes = false;
-    if (i < diaSemana) {
-      dia = diasMesAnt - diaSemana + i + 1;
-      mes = calMes - 1 || 12;
-      anio = mes === 12 ? calAnio - 1 : calAnio;
-      otroMes = true;
-    } else if (i >= diaSemana + diasEnMes) {
-      dia = i - diaSemana - diasEnMes + 1;
-      mes = calMes + 1 > 12 ? 1 : calMes + 1;
-      anio = calMes + 1 > 12 ? calAnio + 1 : calAnio;
-      otroMes = true;
-    } else {
-      dia = i - diaSemana + 1;
-      mes = calMes; anio = calAnio;
+  // Ocupacion por dia: cuantas habitaciones estan tomadas ese dia.
+  // Una reserva ocupa desde la entrada hasta la NOCHE ANTERIOR a la salida
+  // (el dia de salida la habitacion vuelve a estar vendible).
+  const ocupadasPorDia = {};
+  for (let d = 1; d <= diasMes; d++) ocupadasPorDia[iso(d)] = 0;
+  for (const r of reservasCalendario) {
+    for (let d = 1; d <= diasMes; d++) {
+      const f = iso(d);
+      if (r.entrada <= f && f < r.salida) ocupadasPorDia[f]++;
     }
-
-    const fechaStr = `${anio}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
-    const esHoy = (dia===hoy.getDate() && mes===hoy.getMonth()+1 && anio===hoy.getFullYear());
-    const rsDia = reservasCalendario.filter(r => r.entrada === fechaStr);
-
-    let evHtml = rsDia.slice(0,3).map(r =>
-      `<div class="cal-evento ev-${r.estado}" onclick="event.stopPropagation();verDetalle(${r.id})"
-            title="${r.huesped}">
-        ${r.habitacion} · ${r.huesped.split(' ')[0]}
-      </div>`
-    ).join('');
-    if (rsDia.length > 3)
-      evHtml += `<div style="font-size:10px;color:rgba(255,255,255,.3);padding:2px 4px">
-        +${rsDia.length-3} mas</div>`;
-
-    html += `<div class="cal-dia${otroMes?' otro-mes':''}${esHoy?' hoy':''}"
-              onclick="diaClick('${fechaStr}')">
-      <div class="cal-num">${dia}</div>${evHtml}
-    </div>`;
   }
-  grid.innerHTML = html;
+
+  // ── Cabecera: un dia por columna, con su % de ocupacion
+  let h = `<div class="tl-fila tl-fila-cab">
+             <div class="tl-hab tl-hab-cab">Habitacion</div>`;
+  for (let d = 1; d <= diasMes; d++) {
+    const f    = iso(d);
+    const fd   = new Date(calAnio, calMes-1, d);
+    const finde = fd.getDay() === 0 || fd.getDay() === 6;
+    const pct  = totalHabitaciones ? Math.round(ocupadasPorDia[f] * 100 / totalHabitaciones) : 0;
+    h += `<div class="tl-dia${finde ? ' finde' : ''}${f === hoyISO ? ' hoy' : ''}">
+            <span class="tl-dsem">${DIAS[fd.getDay()]}</span>
+            <span class="tl-dnum">${d}</span>
+            <span class="tl-pct${pct >= 80 ? ' alto' : ''}">${pct}%</span>
+          </div>`;
+  }
+  h += `</div>`;
+  cab.innerHTML = h;
+
+  // ── Cuerpo: una fila por habitacion, agrupadas por piso
+  if (!habitacionesTL.length) {
+    cuer.innerHTML = `<div style="padding:36px;text-align:center;color:rgba(255,255,255,.25)">
+      Sin habitaciones configuradas</div>`;
+    return;
+  }
+
+  const porPiso = {};
+  for (const hab of habitacionesTL) {
+    (porPiso[hab.piso] = porPiso[hab.piso] || []).push(hab);
+  }
+
+  let body = '';
+  for (const piso of Object.keys(porPiso)) {
+    body += `<div class="tl-piso">${esc(piso)}</div>`;
+    for (const hab of porPiso[piso]) {
+      const delHab = reservasCalendario.filter(r => r.idHabitacion === hab.idHabitacion);
+
+      body += `<div class="tl-fila">
+                 <div class="tl-hab">
+                   <strong>${esc(hab.numero)}</strong>
+                   <span>${esc(hab.tipo)}</span>
+                 </div>`;
+
+      // Celdas vacias: clic = reservar esa habitacion ese dia
+      for (let d = 1; d <= diasMes; d++) {
+        const f  = iso(d);
+        const fd = new Date(calAnio, calMes-1, d);
+        const finde = fd.getDay() === 0 || fd.getDay() === 6;
+        const pasado = f < hoyISO;
+        body += `<div class="tl-celda${finde ? ' finde' : ''}${f === hoyISO ? ' hoy' : ''}${pasado ? ' pasado' : ''}"
+                      ${pasado ? '' : `onclick="reservarDesdeTimeline(${hab.idHabitacion},'${f}')"`}></div>`;
+      }
+
+      // Barras de reserva, posicionadas sobre las celdas
+      for (const r of delHab) {
+        const ini = r.entrada > iso(1)       ? parseInt(r.entrada.slice(8,10), 10) : 1;
+        const fin = r.salida  <= iso(diasMes) ? parseInt(r.salida.slice(8,10), 10) : diasMes + 1;
+        const largo = Math.max(1, fin - ini);
+        const cortaIzq = r.entrada < iso(1);
+        const cortaDer = r.salida  > iso(diasMes);
+        const saldo = Number(r.saldo) || 0;
+        body += `
+          <div class="tl-barra e-${esc(r.estado)}${cortaIzq ? ' corta-izq' : ''}${cortaDer ? ' corta-der' : ''}"
+               style="--ini:${ini};--largo:${largo}"
+               title="${esc(r.codigo)} — ${esc(r.huesped)}&#10;${esc(r.entrada)} al ${esc(r.salida)} (${r.noches}n)&#10;Total S/ ${Number(r.total).toFixed(2)} — Saldo S/ ${saldo.toFixed(2)}"
+               onclick="event.stopPropagation();verDetalle(${r.id})">
+            <span>${esc((r.huesped || '').trim() || r.codigo)}</span>
+            ${saldo > 0.005 ? '<i class="fa-solid fa-circle-exclamation tl-debe" title="Con saldo pendiente"></i>' : ''}
+          </div>`;
+      }
+      body += `</div>`;
+    }
+  }
+  cuer.innerHTML = body;
+}
+
+// Clic en un dia libre: abre el alta con esa habitacion y esa fecha puestas
+function reservarDesdeTimeline(idHab, fecha) {
+  const sig = new Date(fecha + 'T12:00:00');
+  sig.setDate(sig.getDate() + 1);
+  const salida = sig.toISOString().split('T')[0];
+  window.location.href = `reservas.html?nueva=1&hab=${idHab}&entrada=${fecha}&salida=${salida}`;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function diaClick(fecha) {

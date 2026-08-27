@@ -93,6 +93,7 @@
         <button class="tab-btn active" onclick="cambiarTab('reservas',this)"><i class="fa-solid fa-calendar-check"></i> Reservas por Canal</button>
         <button class="tab-btn" onclick="cambiarTab('tarifas',this)"><i class="fa-solid fa-tag"></i> Tarifas</button>
         <button class="tab-btn" onclick="cambiarTab('disponibilidad',this)"><i class="fa-solid fa-table-cells"></i> Disponibilidad</button>
+        <button class="tab-btn" onclick="cambiarTab('conexiones',this)"><i class="fa-solid fa-plug"></i> Conexiones</button>
       </div>
 
       <!-- TAB RESERVAS -->
@@ -164,6 +165,31 @@
             <i class="fa-solid fa-rotate"></i>Forzar Sincronizacion
           </button>
         </div>
+      </div>
+
+      <!-- TAB CONEXIONES: URLs iCal de Booking/Airbnb/Expedia -->
+      <div id="tabConexiones" class="tab-panel">
+        <div class="card" style="margin-bottom:14px">
+          <div style="font-size:13.5px;line-height:1.65;color:var(--text-soft)">
+            <strong style="color:var(--text)">Como conectar un canal (ejemplo Booking.com):</strong><br>
+            1. Entra a la <b>extranet de Booking</b> &rarr; Tarifas y disponibilidad &rarr; <b>Sincronizar calendarios</b>.<br>
+            2. Copia la <b>URL del calendario (iCal)</b> que te da Booking y pegala aqui abajo en su canal.<br>
+            3. Activa el canal y guarda. El sistema leera sus reservas automaticamente.<br>
+            4. En esa misma pantalla de Booking, pega <b>nuestra URL</b> (boton copiar de abajo) para que
+               Booking <b>bloquee las fechas que ya estan ocupadas</b> en el hotel y no haya sobreventa.
+          </div>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:12.5px;color:var(--text-faint)">Nuestro calendario (pegarlo en el canal):</span>
+            <code id="urlNuestroIcal" style="background:rgba(255,255,255,.06);padding:6px 10px;border-radius:6px;font-size:12px;word-break:break-all">...</code>
+            <button class="btn btn-ghost btn-sm" onclick="copiarNuestroIcal()"><i class="fa-solid fa-copy"></i> Copiar</button>
+          </div>
+          <div id="avisoUrlPublica" style="display:none;margin-top:10px;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.28);border-radius:8px;padding:9px 12px;font-size:12.5px;color:#f5b642">
+            Esta URL es de esta PC. Para que Booking pueda leerla desde internet, el equipo
+            necesita salida publica (Cloudflare Tunnel) — se configura en la instalacion.
+          </div>
+        </div>
+
+        <div id="listaConexiones"><!-- tarjetas por canal --></div>
       </div>
 
     </main>
@@ -520,7 +546,104 @@ function cambiarTab(tab, btn) {
   btn.classList.add('active');
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-  if (tab === 'tarifas') cargarTarifas();
+  if (tab === 'tarifas')    cargarTarifas();
+  if (tab === 'conexiones') cargarConexiones();
+}
+
+/* ── CONEXIONES iCal ─────────────────────────────────────────
+   Aca el hotel pega la URL del calendario de Booking/Airbnb sin
+   tocar la base de datos. */
+async function cargarConexiones() {
+  const cont = document.getElementById('listaConexiones');
+  try {
+    const res = await api.get('/channel/canales');
+    const canales = (res.data || []).filter(c => c.codigo !== 'WEB'); // la web propia no va por iCal
+    cont.innerHTML = canales.map(c => `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <strong style="font-size:14.5px;min-width:110px">${c.nombre}</strong>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-soft);cursor:pointer">
+            <input type="checkbox" id="cx-act-${c.id}" ${c.activo ? 'checked' : ''}> Activo
+          </label>
+          <span style="margin-left:auto;font-size:12px;color:${c.ultimoOk ? 'var(--text-faint)' : 'var(--red,#ef4444)'}">
+            ${c.ultimaSync ? 'Ultima lectura: ' + c.ultimaSync : 'Nunca sincronizado'}
+            ${c.ultimoMsg ? ' — ' + esc(c.ultimoMsg) : ''}
+          </span>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:260px">
+            <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">
+              URL del calendario iCal de ${c.nombre}</label>
+            <input class="form-control" id="cx-url-${c.id}" value="${esc(c.icalUrl || '')}"
+                   placeholder="https://... (desde la extranet del canal)">
+          </div>
+          <div style="width:130px">
+            <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">Leer cada (min)</label>
+            <input class="form-control" id="cx-min-${c.id}" type="number" min="5" max="1440"
+                   value="${c.syncCadaMin || 15}">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="guardarConexion(${c.id})">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+          <button class="btn btn-ghost btn-sm" onclick="probarConexion(${c.id})">
+            <i class="fa-solid fa-plug-circle-check"></i> Probar ahora</button>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text-faint)">
+          Reservas recibidas de este canal: <strong>${c.total}</strong>
+          ${c.nuevas > 0 ? ` — <span style="color:var(--yellow,#f59e0b)">${c.nuevas} sin procesar</span>` : ''}
+        </div>
+      </div>`).join('');
+
+    // Nuestra URL de exportacion (la que se pega en el canal)
+    try {
+      const cfg = await api.get('/channel/ical/mi-url');
+      document.getElementById('urlNuestroIcal').textContent = cfg.data.url;
+      document.getElementById('avisoUrlPublica').style.display =
+        cfg.data.esLocal ? 'block' : 'none';
+    } catch (e) {
+      document.getElementById('urlNuestroIcal').textContent = '(no disponible)';
+    }
+  } catch (e) {
+    cont.innerHTML = `<div class="card" style="color:var(--red,#ef4444)">${esc(e.message)}</div>`;
+  }
+}
+
+async function guardarConexion(id) {
+  try {
+    await api.put('/channel/canales/' + id, {
+      icalUrl:     document.getElementById('cx-url-' + id).value.trim(),
+      activo:      document.getElementById('cx-act-' + id).checked,
+      syncCadaMin: parseInt(document.getElementById('cx-min-' + id).value) || 15
+    });
+    toast('Canal guardado', 'success');
+    cargarConexiones();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function probarConexion(id) {
+  try {
+    // Guarda primero lo que este escrito y recien prueba
+    await api.put('/channel/canales/' + id, {
+      icalUrl:     document.getElementById('cx-url-' + id).value.trim(),
+      activo:      document.getElementById('cx-act-' + id).checked,
+      syncCadaMin: parseInt(document.getElementById('cx-min-' + id).value) || 15
+    });
+    const r = await api.post('/channel/ical/importar?canal=' + id, {});
+    toast(r.message || 'Lectura completada', 'success');
+    cargarConexiones();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function copiarNuestroIcal() {
+  const t = document.getElementById('urlNuestroIcal').textContent;
+  if (!t || t.startsWith('(')) { toast('URL no disponible', 'warning'); return; }
+  navigator.clipboard.writeText(t)
+    .then(() => toast('URL copiada. Pegala en la extranet del canal.', 'success'))
+    .catch(() => toast('No se pudo copiar', 'error'));
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // Info row para modal detalle (definida en el inline HTML)

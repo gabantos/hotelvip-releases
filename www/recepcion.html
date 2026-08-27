@@ -127,12 +127,60 @@
       border-radius: var(--radius-sm); margin-bottom: 12px;
       border: 1px solid var(--border);
     }
-    .hab-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .hab-grid { display: flex; flex-wrap: wrap; gap: 11px; }
+
+    /* ── Tarjeta de habitacion con datos del huesped ── */
+    .hab-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .hab-badge {
+      font-size: 9.5px; font-weight: 800; letter-spacing: .04em;
+      text-transform: uppercase; padding: 2px 7px; border-radius: 999px;
+      background: rgba(255,255,255,.14); color: #fff; white-space: nowrap;
+    }
+    .b-VENCIDO { background: #dc2626; color: #fff; }
+
+    .hab-huesped {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11.5px; font-weight: 700; color: #fff;
+      margin-top: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .hab-huesped i { font-size: 9px; opacity: .65; flex-shrink: 0; }
+    .hab-llega { font-size: 10.5px; color: rgba(255,255,255,.72); margin-top: 2px; }
+
+    .hab-fechas {
+      display: flex; gap: 8px; margin-top: 7px;
+      border-top: 1px solid rgba(255,255,255,.13); padding-top: 6px;
+    }
+    .hab-fechas > div { flex: 1; min-width: 0; }
+    .hab-fechas span {
+      display: block; font-size: 8.5px; text-transform: uppercase;
+      letter-spacing: .05em; color: rgba(255,255,255,.5); font-weight: 700;
+    }
+    .hab-fechas strong {
+      display: block; font-size: 10px; color: rgba(255,255,255,.92);
+      font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .hab-aviso {
+      margin-top: 7px; background: rgba(220,38,38,.22);
+      border: 1px solid rgba(255,255,255,.22); border-radius: 5px;
+      padding: 3px 7px; font-size: 10px; font-weight: 700; color: #fff;
+    }
+    .hab-cod {
+      margin-top: 7px; font-size: 9.5px; letter-spacing: .04em;
+      color: rgba(255,255,255,.55); font-weight: 600;
+    }
+
+    .hab-vacia {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      padding: 15px 0 9px; color: rgba(255,255,255,.62);
+    }
+    .hab-vacia i { font-size: 21px; opacity: .5; }
+    .hab-vacia span { font-size: 11px; font-weight: 600; }
+    .hab-vacia.libre i { opacity: .75; }
 
     /* Cards habitacion */
     .hab-card {
-      width: 116px; border-radius: var(--radius);
-      padding: 12px 10px; cursor: pointer;
+      width: 188px; border-radius: var(--radius);
+      padding: 11px 12px 12px; cursor: pointer;
       transition: transform .13s, box-shadow .13s;
       border: 2px solid transparent; user-select: none;
       position: relative;
@@ -168,12 +216,67 @@
       color: #f5b642; border-radius: 8px; padding: 10px 12px;
       font-size: 12px; line-height: 1.5; margin-bottom: 10px;
     }
+
+    /* Buscador + filtro por tipo */
+    .mapa-toolbar {
+      display: flex; gap: 10px; align-items: center;
+      padding: 12px 16px 0;
+    }
+    .mapa-busca {
+      flex: 1; position: relative; display: flex; align-items: center;
+    }
+    .mapa-busca i {
+      position: absolute; left: 12px; font-size: 12px; color: var(--text-faint);
+    }
+    .mapa-busca input {
+      width: 100%; padding: 9px 32px 9px 34px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px; color: var(--text); font-size: 13px; outline: none;
+    }
+    .mapa-busca input:focus { border-color: var(--accent); }
+    .mapa-busca button {
+      position: absolute; right: 8px; background: none; border: none;
+      color: var(--text-faint); font-size: 17px; cursor: pointer; padding: 2px 6px;
+    }
+    .mapa-toolbar select {
+      padding: 9px 12px; min-width: 160px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px; color: var(--text); font-size: 13px; outline: none;
+    }
+    .mapa-toolbar select option { background: #1a2234; }
+
+    /* Chips de estado con contador: son la leyenda Y el filtro a la vez */
+    .mapa-chips {
+      display: flex; flex-wrap: wrap; gap: 7px; padding: 10px 16px 0;
+    }
+    .chip-est {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 11px; border-radius: 999px; cursor: pointer; user-select: none;
+      font-size: 12px; font-weight: 600; color: var(--text-soft);
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+      transition: all .12s;
+    }
+    .chip-est:hover { background: rgba(255,255,255,.09); }
+    .chip-est .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .chip-est .n {
+      background: rgba(255,255,255,.12); border-radius: 999px;
+      padding: 0 7px; font-size: 11px; line-height: 17px;
+    }
+    .chip-est.activo {
+      color: #fff; border-color: var(--chipc, var(--accent));
+      background: color-mix(in srgb, var(--chipc, var(--accent)) 22%, transparent);
+    }
+    .sin-resultados {
+      text-align: center; color: var(--text-faint); padding: 40px 0; font-size: 13px;
+    }
     .hab-estado-dot {
       position: absolute; top: 8px; right: 8px;
       width: 7px; height: 7px; border-radius: 50%;
     }
 
     /* Estados */
+    /* Vencido: salida pasada sin check-out. Se marca fuerte a proposito. */
+    .s-VENCIDO       { background: #4a1010; border-color: #dc2626; }
     .s-DISPONIBLE    { background: #0d3318; border-color: #10b981; }
     .s-OCUPADA       { background: #3b1010; border-color: #ef4444; }
     .s-RESERVADA     { background: #0d2244; border-color: #3b82f6; }
@@ -294,15 +397,20 @@
             <a href="channel.html" style="background:rgba(245,158,11,.2);color:var(--yellow);border:1px solid rgba(245,158,11,.3);padding:4px 12px;border-radius:5px;font-size:12px;font-weight:600;text-decoration:none">Ver &rarr;</a>
           </div>
 
-          <div class="leyenda">
-            <div class="ley-item"><div class="ley-dot" style="background:#10b981"></div>Disponible</div>
-            <div class="ley-item"><div class="ley-dot" style="background:#ef4444"></div>Ocupada</div>
-            <div class="ley-item"><div class="ley-dot" style="background:#3b82f6"></div>Reservada</div>
-            <div class="ley-item"><div class="ley-dot" style="background:#f59e0b"></div>Limpieza</div>
-            <div class="ley-item"><div class="ley-dot" style="background:#6b7280"></div>Mantenimiento</div>
-            <div class="ley-item"><div class="ley-dot" style="background:#4b5563"></div>Bloqueada</div>
-            <div class="ley-item"><div class="ley-dot" style="background:#8b5cf6"></div>Inspeccion</div>
+          <!-- Buscador + filtros: encontrar la habitacion sin recorrer el mapa -->
+          <div class="mapa-toolbar">
+            <div class="mapa-busca">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="fBuscar" placeholder="Buscar por huesped, documento, telefono o habitacion..."
+                     oninput="aplicarFiltros()" autocomplete="off">
+              <button id="fBuscarLimpiar" title="Limpiar"
+                      onclick="document.getElementById('fBuscar').value='';aplicarFiltros()">&times;</button>
+            </div>
+            <select id="fTipo" onchange="aplicarFiltros()" title="Tipo de habitacion">
+              <option value="">Todos los tipos</option>
+            </select>
           </div>
+          <div class="mapa-chips" id="mapaChips"></div>
 
           <div id="mapaContainer">
             <div class="mapa-loading"><i class="fa-solid fa-spinner fa-spin" style="margin-right:8px"></i>Cargando habitaciones...</div>
@@ -376,7 +484,8 @@ async function cargarMapa() {
   try {
     const res = await api.get('/habitaciones/mapa');
     mapaData = res.data;
-    renderMapa(mapaData);
+    llenarFiltroTipos(mapaData);
+    aplicarFiltros();
     actualizarKPIs(mapaData);
     document.getElementById('syncDot').className = 'sync-dot';
     document.getElementById('syncTxt').textContent = 'Act. ' +
@@ -388,10 +497,149 @@ async function cargarMapa() {
   }
 }
 
-function renderMapa(pisos) {
+/* Tarjeta de habitacion: dice de un vistazo QUIEN esta adentro, desde
+   cuando y hasta cuando, sin tener que abrir el detalle. */
+function tarjetaHab(h) {
+  const sel = habSeleccionada && habSeleccionada.idHabitacion === h.idHabitacion ? ' selected' : '';
+  const r   = h.reserva;
+  const est = (r && r.vencida) ? 'VENCIDO' : estadoDe(h);
+
+  const ETIQUETA = {
+    DISPONIBLE:'Libre', OCUPADA:'Ocupada', RESERVADA:'Reservada', LIMPIEZA:'Limpieza',
+    INSPECCION:'Inspeccion', MANTENIMIENTO:'Mantenimiento', BLOQUEADA:'Bloqueada',
+    VENCIDO:'Vencido'
+  };
+
+  let cuerpo;
+  if (r) {
+    // Con huesped: nombre, entrada/salida y codigo de reserva
+    const entrada = r.checkinTxt || fFechaCorta(r.entrada);
+    const salida  = r.checkoutTxt || fFechaCorta(r.salida);
+    const aviso   = r.vencida
+      ? `<div class="hab-aviso">Debio salir hace ${r.diasVencida} ${r.diasVencida === 1 ? 'dia' : 'dias'}</div>`
+      : '';
+    const llegada = (est === 'RESERVADA')
+      ? `<div class="hab-llega">Llega ${fFechaCorta(r.entrada)}</div>` : '';
+    cuerpo = `
+      <div class="hab-huesped"><i class="fa-solid fa-user"></i>${esc(r.huesped || 'Huesped')}</div>
+      ${llegada}
+      <div class="hab-fechas">
+        <div><span>Entrada</span><strong>${esc(entrada)}</strong></div>
+        <div><span>Salida</span><strong>${esc(salida)}</strong></div>
+      </div>
+      ${aviso}
+      <div class="hab-cod">${esc(r.codigo || '')}</div>`;
+  } else if (est === 'LIMPIEZA' || est === 'INSPECCION') {
+    cuerpo = `<div class="hab-vacia"><i class="fa-solid fa-broom"></i>
+                <span>${est === 'LIMPIEZA' ? 'En limpieza' : 'En inspeccion'}</span></div>`;
+  } else if (est === 'MANTENIMIENTO' || est === 'BLOQUEADA') {
+    cuerpo = `<div class="hab-vacia"><i class="fa-solid fa-${est === 'BLOQUEADA' ? 'lock' : 'wrench'}"></i>
+                <span>${ETIQUETA[est]}</span></div>`;
+  } else {
+    cuerpo = `<div class="hab-vacia libre"><i class="fa-solid fa-circle-check"></i>
+                <span>Disponible</span></div>
+              <div class="hab-precio">S/ ${Number(h.precioBase).toFixed(0)} / noche</div>`;
+  }
+
+  return `
+    <div class="hab-card s-${est}${sel}" id="hab-${h.idHabitacion}"
+         onclick="seleccionarHab(${h.idHabitacion})">
+      <div class="hab-top">
+        <div class="hab-numero">${esc(h.numero)}</div>
+        <div class="hab-badge b-${est}">${ETIQUETA[est] || est}</div>
+      </div>
+      <div class="hab-tipo">${esc(h.tipo)}</div>
+      ${cuerpo}
+    </div>`;
+}
+
+/* ── FILTROS DEL MAPA ──────────────────────────────────────
+   Chips por estado (con contador), buscador por huesped/documento/
+   telefono/habitacion y filtro por tipo. Los contadores se calculan
+   SIEMPRE sobre el total, como el conteo de un panel de recepcion:
+   filtrar no cambia cuantas ocupadas hay. */
+let filtroEstado = 'TODO';
+let filtroTexto  = '';
+let filtroTipo   = '';
+
+const CHIPS_DEF = [
+  { k: 'TODO',          lbl: 'Todo',          c: '#94a3b8' },
+  { k: 'DISPONIBLE',    lbl: 'Disponible',    c: '#10b981' },
+  { k: 'OCUPADA',       lbl: 'Ocupada',       c: '#ef4444' },
+  { k: 'VENCIDO',       lbl: 'Vencidos',      c: '#dc2626' },
+  { k: 'RESERVADA',     lbl: 'Reservada',     c: '#3b82f6' },
+  { k: 'LIMPIEZA',      lbl: 'Limpieza',      c: '#f59e0b' },
+  { k: 'INSPECCION',    lbl: 'Inspeccion',    c: '#8b5cf6' },
+  { k: 'MANTENIMIENTO', lbl: 'Mantenimiento', c: '#6b7280' },
+  { k: 'BLOQUEADA',     lbl: 'Bloqueada',     c: '#4b5563' }
+];
+
+function llenarFiltroTipos(pisos) {
+  const sel = document.getElementById('fTipo');
+  if (!sel || sel.options.length > 1) return;   // ya cargado
+  const tipos = new Set();
+  for (const p of pisos) for (const h of p.habitaciones) tipos.add(h.tipo);
+  [...tipos].sort().forEach(t => {
+    const o = document.createElement('option');
+    o.value = t; o.textContent = t;
+    sel.appendChild(o);
+  });
+}
+
+function coincideBusqueda(h, txt) {
+  if (!txt) return true;
+  const r = h.reserva || {};
+  const pajar = [h.numero, h.tipo, r.huesped, r.codigo, r.documento, r.telefono]
+    .join(' ').toLowerCase();
+  return txt.toLowerCase().split(/\s+/).every(p => pajar.includes(p));
+}
+
+function aplicarFiltros() {
+  filtroTexto = (document.getElementById('fBuscar')?.value || '').trim();
+  filtroTipo  = document.getElementById('fTipo')?.value || '';
+
+  // Contadores globales para los chips
+  const cnt = { TODO: 0 };
+  CHIPS_DEF.forEach(c => { if (c.k !== 'TODO') cnt[c.k] = 0; });
+  for (const p of mapaData) for (const h of p.habitaciones) {
+    cnt.TODO++;
+    // Vencido es su propio grupo (sale de Ocupada) para que salte a la vista
+    const e = (h.reserva && h.reserva.vencida) ? 'VENCIDO' : estadoDe(h);
+    if (cnt[e] !== undefined) cnt[e]++;
+  }
+  const chips = document.getElementById('mapaChips');
+  if (chips) chips.innerHTML = CHIPS_DEF.map(c => `
+    <div class="chip-est${filtroEstado === c.k ? ' activo' : ''}" style="--chipc:${c.c}"
+         onclick="setFiltroEstado('${c.k}')">
+      <span class="dot" style="background:${c.c}"></span>${c.lbl}
+      <span class="n">${cnt[c.k] ?? 0}</span>
+    </div>`).join('');
+
+  // Pisos filtrados (se ocultan los pisos que quedan vacios)
+  const filtrado = [];
+  for (const p of mapaData) {
+    const habs = p.habitaciones.filter(h =>
+      (filtroEstado === 'TODO' ||
+       ((h.reserva && h.reserva.vencida) ? 'VENCIDO' : estadoDe(h)) === filtroEstado) &&
+      (!filtroTipo || h.tipo === filtroTipo) &&
+      coincideBusqueda(h, filtroTexto));
+    if (habs.length) filtrado.push({ ...p, habitaciones: habs });
+  }
+  renderMapa(filtrado, true);
+}
+
+function setFiltroEstado(k) {
+  // Tocar el chip activo lo apaga (vuelve a Todo)
+  filtroEstado = (filtroEstado === k) ? 'TODO' : k;
+  aplicarFiltros();
+}
+
+function renderMapa(pisos, esFiltrado) {
   const cont = document.getElementById('mapaContainer');
   if (!pisos || !pisos.length) {
-    cont.innerHTML = `<div class="empty-state"><i class="fa-solid fa-door-open"></i><p>Sin habitaciones configuradas</p></div>`;
+    cont.innerHTML = esFiltrado
+      ? `<div class="sin-resultados"><i class="fa-solid fa-magnifying-glass" style="margin-right:7px"></i>Ninguna habitacion coincide con la busqueda</div>`
+      : `<div class="empty-state"><i class="fa-solid fa-door-open"></i><p>Sin habitaciones configuradas</p></div>`;
     return;
   }
   let html = '';
@@ -400,22 +648,7 @@ function renderMapa(pisos) {
       <div class="piso-header">${piso.nombre} &mdash; ${piso.habitaciones.length} habitaciones</div>
       <div class="hab-grid">`;
     for (const h of piso.habitaciones) {
-      const sel = habSeleccionada && habSeleccionada.idHabitacion === h.idHabitacion ? ' selected' : '';
-      const est = estadoDe(h);
-      // Si hay huesped o reserva, se muestra en la tarjeta: el recepcionista
-      // ve de un vistazo QUIEN esta en cada habitacion.
-      const quien = h.reserva
-        ? `<div class="hab-huesped">${esc((h.reserva.huesped || '').split(' ')[0] || 'Huesped')}</div>`
-        : `<div class="hab-precio">S/ ${Number(h.precioBase).toFixed(0)}/noche</div>`;
-      html += `
-        <div class="hab-card s-${est}${sel}"
-             onclick="seleccionarHab(${h.idHabitacion})"
-             id="hab-${h.idHabitacion}">
-          <div class="hab-estado-dot dot-${est}"></div>
-          <div class="hab-numero">${h.numero}</div>
-          <div class="hab-tipo">${h.tipo}</div>
-          ${quien}
-        </div>`;
+      html += tarjetaHab(h);
     }
     html += '</div></div>';
   }
