@@ -60,6 +60,7 @@ function buildHeader(activeModule) {
   <div class="header-title">
     <i class="fa-solid ${mod.icon}"></i>
     <span id="headerTitle">${mod.title}</span>
+    <span class="header-hotel" id="headerHotel"></span>
   </div>
   <div class="header-right">
     <div class="user-info">
@@ -177,6 +178,39 @@ function initLayout(activeModule) {
   if (elAvatar) elAvatar.textContent = inicial;
   if (elNombre) elNombre.textContent = nombre || 'Usuario';
   if (elRol)    elRol.textContent    = user.rolNombre || user.rol || '';
+
+  // Nombre del hotel/sucursal en la barra y en la pestana del navegador.
+  // Con varios locales abiertos a la vez todas las pestanas decian igual y
+  // no se sabia en cual se estaba trabajando.
+  const tituloMod = (MODULES[activeModule] || {}).title || activeModule || '';
+
+  function pintarHotel(nombre, direccion) {
+    const el = document.getElementById('headerHotel');
+    if (el && nombre) {
+      el.textContent = nombre;
+      if (direccion) el.title = direccion;
+    }
+    document.title = nombre ? `${nombre} — ${tituloMod}` : `HotelVIP — ${tituloMod}`;
+  }
+
+  if ((user.hotelNombre || '').trim()) {
+    pintarHotel(user.hotelNombre.trim(), user.hotelDireccion);
+  } else {
+    // Sesion abierta ANTES de que existiera este dato: no esta guardado.
+    // Se pide a /auth/me y se deja guardado para las siguientes pantallas,
+    // asi no hace falta cerrar sesion y volver a entrar.
+    pintarHotel('', '');
+    api.get('/auth/me')
+      .then(r => {
+        const d = (r && r.data) ? r.data : r;
+        if (!d || !d.hotelNombre) return;
+        user.hotelNombre    = d.hotelNombre;
+        user.hotelDireccion = d.hotelDireccion || '';
+        localStorage.setItem('hv_usuario', JSON.stringify(user));
+        pintarHotel(d.hotelNombre, d.hotelDireccion);
+      })
+      .catch(() => {});   // si falla, la barra queda oculta y no molesta
+  }
 
   // 7. Conectar boton logout
   const btnLogout = document.getElementById('btnLogout');

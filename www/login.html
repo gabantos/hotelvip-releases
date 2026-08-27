@@ -291,7 +291,10 @@ document.getElementById('formLogin').addEventListener('submit', async function(e
       rolNombre: data.data.rolNombre,    // nombre para mostrar
       modulos:   data.data.modulos,      // que puede ver este rol
       email:     data.data.email,
-      foto:      data.data.foto
+      foto:      data.data.foto,
+      // Que hotel/sucursal es este: se muestra en la barra superior
+      hotelNombre:    data.data.hotelNombre,
+      hotelDireccion: data.data.hotelDireccion
     }));
 
     window.location.href = 'recepcion.html';

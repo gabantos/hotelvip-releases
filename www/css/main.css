@@ -167,6 +167,24 @@ img { max-width: 100%; }
   display: flex; align-items: center; gap: 8px;
 }
 .header-title i { color: var(--accent); font-size: 14px; }
+
+/* Nombre del hotel/sucursal al lado del modulo. Con varios locales abiertos
+   a la vez es lo unico que distingue una pestana de otra. */
+.header-hotel {
+  margin-left: 4px; padding: 3px 10px;
+  background: var(--accent-soft, rgba(56,132,255,.13));
+  border: 1px solid var(--accent-border, rgba(56,132,255,.30));
+  color: var(--accent);
+  border-radius: 999px;
+  font-size: 11.5px; font-weight: 700;
+  letter-spacing: .02em; text-transform: uppercase;
+  white-space: nowrap; max-width: 260px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.header-hotel:empty { display: none; }
+@media (max-width: 720px) {
+  .header-hotel { max-width: 120px; font-size: 10.5px; }
+}
 .header-right {
   display: flex; align-items: center; gap: 10px;
 }
