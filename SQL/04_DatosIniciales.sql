@@ -85,6 +85,12 @@ INSERT IGNORE INTO cfg_Amenidades (IdAmenidad, Nombre, Icono) VALUES
 -- ============================================================
 -- METODOS DE PAGO
 -- ============================================================
+-- Caja de recepcion. SIN al menos una caja no se puede abrir turno, sin
+-- turno no se puede cobrar, y sin cobrar no se puede hacer check-out: el
+-- hotel quedaba sin poder operar desde el dia de la instalacion.
+INSERT IGNORE INTO caj_Cajas (IdCaja, Nombre, Activa) VALUES
+(1, 'Caja Recepcion', 1);
+
 INSERT IGNORE INTO cfg_MetodosPago (IdMetodo, Nombre) VALUES
 (1, 'Efectivo PEN'),
 (2, 'Efectivo USD'),
