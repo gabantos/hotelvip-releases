@@ -86,6 +86,15 @@ if errorlevel 1 (
 )
 echo    OK
 
+REM Permisos para el respaldo automatico. mysqldump ejecuta 'show events' y
+REM 'show create procedure', que un usuario de aplicacion normal NO puede.
+REM Sin esto el respaldo falla en silencio y el hotel se queda sin copias.
+REM Con root no hace falta, pero no molesta.
+if /i not "%DB_ADMIN%"=="root" (
+    "%MYSQL%" -h %DB_HOST% -P %DB_PORT% -u %DB_ADMIN% --skip-ssl -e "GRANT EVENT, TRIGGER, SHOW CREATE ROUTINE ON *.* TO '%DB_ADMIN%'@'localhost'; FLUSH PRIVILEGES;" 2>nul
+    if not errorlevel 1 echo    Permisos de respaldo verificados
+)
+
 echo.
 echo [2/7] Aplicando estructura...
 for %%F in (01_Estructura.sql 02_Vistas.sql 03_StoredProcedures.sql 04_DatosIniciales.sql) do (
