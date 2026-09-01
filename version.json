@@ -2,6 +2,7 @@
   "version": "2.0.3",
   "fecha": "2026-09-01",
   "changelog": [
+    "El minibar ya se puede cargar desde el sistema: antes la lista de productos de cada habitacion nacia vacia y no habia forma de llenarla, asi que todo consumo daba 'Stock insuficiente' y el modulo no se podia usar",
     "Correccion importante: el servidor mostraba de la nada un cuadro de error (EAccessViolation) y quedaba congelado hasta que alguien lo cerraba. Pasaba cada vez que se cortaba el internet",
     "Ahora cualquier error queda anotado en el registro y el sistema sigue trabajando, sin cuadros en pantalla delante del huesped",
     "Nuevo: panel del propietario para ver todos sus hoteles desde el celular o desde el extranjero",
