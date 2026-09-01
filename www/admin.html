@@ -354,7 +354,10 @@
       <div class="form-group">
         <label>Rol</label>
         <select id="usrRol" class="form-control">
-          <option value="ADMIN">ADMIN — Acceso total</option>
+          <!-- SUPERADMIN se agrega por JS solo si quien esta logueado lo es.
+               El servidor igual lo rechaza: esconder la opcion no alcanza. -->
+          <option value="ADMIN">ADMIN — Todo el hotel, sin la configuracion del sistema</option>
+          <option value="SUPERVISOR">SUPERVISOR — Operacion y reportes</option>
           <option value="RECEPCION">RECEPCION — Recepcion y reservas</option>
           <option value="CAJA">CAJA — Solo caja y pagos</option>
           <option value="HOUSEKEEPING">HOUSEKEEPING — Solo limpieza</option>

@@ -232,7 +232,7 @@ function renderTipos(tipos) {
     <tr>
       <td><strong>${esc(t.Nombre || t.nombre || '')}</strong></td>
       <td class="muted">${t.Capacidad || t.capacidad || '—'} pers.</td>
-      <td>${fMoneda(t.PrecioBase || t.precio_base || 0)}</td>
+      <td>${fMoneda(t.precioBase ?? t.PrecioBase ?? t.precio_base ?? 0)}</td>
       <td class="muted">${esc(t.Descripcion || t.descripcion || '—')}</td>
       <td>${badgeActivo(t.Activo ?? t.activo ?? 1)}</td>
       <td>
@@ -271,7 +271,10 @@ function abrirModalTipo(id = null) {
       document.getElementById('tipoId').value          = id;
       document.getElementById('tipoNombre').value      = tipo.Nombre || tipo.nombre || '';
       document.getElementById('tipoCapacidad').value   = tipo.Capacidad || tipo.capacidad || 2;
-      document.getElementById('tipoPrecio').value      = tipo.PrecioBase || tipo.precio_base || 0;
+      // La API devuelve 'precioBase'. Antes solo se miraba 'PrecioBase' y
+      // 'precio_base', asi que la lista mostraba S/0 y el formulario cargaba 0:
+      // el hotel editaba cualquier cosa del tipo y al guardar SE BORRABA EL PRECIO.
+      document.getElementById('tipoPrecio').value      = tipo.precioBase ?? tipo.PrecioBase ?? tipo.precio_base ?? 0;
       document.getElementById('tipoDescripcion').value = tipo.Descripcion || tipo.descripcion || '';
       document.getElementById('tipoActivo').checked    = !!(tipo.Activo ?? tipo.activo ?? 1);
       const amens = tipo.Amenidades || tipo.amenidades || [];

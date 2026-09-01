@@ -1,13 +1,14 @@
 {
-  "version": "2.0.3",
+  "version": "2.0.4",
   "fecha": "2026-09-01",
   "changelog": [
-    "El minibar ya se puede cargar desde el sistema: antes la lista de productos de cada habitacion nacia vacia y no habia forma de llenarla, asi que todo consumo daba 'Stock insuficiente' y el modulo no se podia usar",
-    "Correccion importante: el servidor mostraba de la nada un cuadro de error (EAccessViolation) y quedaba congelado hasta que alguien lo cerraba. Pasaba cada vez que se cortaba el internet",
-    "Ahora cualquier error queda anotado en el registro y el sistema sigue trabajando, sin cuadros en pantalla delante del huesped",
-    "Nuevo: panel del propietario para ver todos sus hoteles desde el celular o desde el extranjero",
-    "Nuevo: pantalla de modulos, ordenada por area y segun el permiso de cada usuario",
-    "El respaldo diario de la base y el envio de datos a la nube ya no se interrumpen cuando falla la conexion"
+    "Correccion importante: editar un tipo de habitacion le borraba el precio y quedaba en cero. La pagina web habria ofrecido habitaciones a S/0 y el sistema las habria cobrado en 0",
+    "La consulta de DNI y RUC ya funciona: al escribir el documento se llenan solos los nombres o la razon social. Con pasaporte o carne de extranjeria no consulta nada y se carga a mano",
+    "El catalogo de la pagina web toma los tipos y los precios del sistema: se acabo tenerlos escritos en dos lugares distintos",
+    "Nuevo nivel SUPERADMIN de SistemasVIP: el hotel maneja todo lo suyo, pero las claves de facturacion electronica y del proveedor de consultas quedan fuera de su alcance",
+    "El panel del propietario ahora muestra las reservas de la web con su cobro, y las agencias con sus hojas de liquidacion",
+    "El minibar ya se puede cargar desde el sistema (antes la lista nacia vacia y todo consumo daba 'Stock insuficiente')",
+    "Modulo de personal y asistencia listo, que se activa cuando el hotel lo contrata junto con el lector de huella"
   ],
-  "url_descarga": "https://github.com/gabantos/hotelvip-releases/releases/download/v2.0.3/HotelVip_v2.0.3.zip"
+  "url_descarga": "https://github.com/gabantos/hotelvip-releases/releases/download/v2.0.4/HotelVip_v2.0.4.zip"
 }

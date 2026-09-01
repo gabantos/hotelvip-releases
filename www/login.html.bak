@@ -179,9 +179,9 @@
   </div>
 
   <form id="formLogin" autocomplete="on">
-    <div class="form-group" style="display:none">
-      <label style="display:none">Schema</label>
-      <div class="input-wrap" style="display:none">
+    <div class="form-group">
+      <label>Schema / Hotel</label>
+      <div class="input-wrap">
         <i class="fa-solid fa-building"></i>
         <input type="text" id="inSchema" placeholder="hotel_001"
                value="hotel_001" autocomplete="off" spellcheck="false">

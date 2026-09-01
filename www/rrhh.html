@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP &mdash; Personal</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* Tarjetas del panel del dia */
+    .persona {
+      background: var(--bg-card); border: 2px solid var(--border);
+      border-radius: var(--radius); padding: 14px;
+      display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+    }
+    .persona.e-Presente     { border-color: var(--green); }
+    .persona.e-Tarde        { border-color: var(--yellow); }
+    .persona.e-Falta        { border-color: var(--red); }
+    .persona.e-Conpermiso   { border-color: var(--accent); }
+    .persona .nom  { font-size: 15px; font-weight: 700; }
+    .persona .car  { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+    .persona .hrs  { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+    .persona .est  { font-size: 12px; font-weight: 700; text-align: right; white-space: nowrap; }
+    .e-Presente   .est { color: var(--green); }
+    .e-Tarde      .est { color: var(--yellow); }
+    .e-Falta      .est { color: var(--red); }
+    .e-Conpermiso .est { color: var(--accent); }
+
+    /* Grilla de horario semanal */
+    .semana { display: grid; grid-template-columns: 120px repeat(3, 1fr) 90px; gap: 8px; align-items: center; }
+    .semana .cab { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); font-weight: 700; }
+    .semana .dia { font-weight: 600; }
+    .semana input[type=time], .semana input[type=number] { width: 100%; }
+    .semana .off { opacity: .4; }
+    .pin-chip {
+      font-family: ui-monospace, monospace; font-size: 15px; letter-spacing: .18em;
+      background: rgba(255,255,255,.06); border: 1px solid var(--border);
+      border-radius: 6px; padding: 3px 10px;
+    }
+    .ayuda { color: var(--text-faint); font-size: 13px; margin: -4px 0 14px; }
+  </style>
+</head>
+<body>
+<div id="app-layout">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <div class="page-header">
+        <h1><i class="fa-solid fa-user-clock"></i>Personal</h1>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost" onclick="init()"><i class="fa-solid fa-rotate"></i>Actualizar</button>
+          <a class="btn btn-primary" href="marcar.html" target="_blank" rel="noopener">
+            <i class="fa-solid fa-fingerprint"></i>Pantalla para marcar</a>
+        </div>
+      </div>
+
+      <div class="tabs" id="mainTabs">
+        <button class="tab-btn active" onclick="cambiarTab('hoy', this)">Hoy</button>
+        <button class="tab-btn" onclick="cambiarTab('horarios', this)">Horarios</button>
+        <button class="tab-btn" onclick="cambiarTab('permisos', this)">Permisos</button>
+        <button class="tab-btn" onclick="cambiarTab('descuentos', this)">Descuentos</button>
+      </div>
+
+      <!-- ══ HOY ══ -->
+      <div class="tab-panel active" id="tabHoy">
+        <div class="stats-grid" style="margin-bottom:18px">
+          <div class="stat-card"><div class="stat-value" id="stPresentes">0</div><div class="stat-label">Presentes</div></div>
+          <div class="stat-card"><div class="stat-value" id="stTardanzas">0</div><div class="stat-label">Llegaron tarde</div></div>
+          <div class="stat-card"><div class="stat-value" id="stFaltas">0</div><div class="stat-label">Faltaron</div></div>
+          <div class="stat-card"><div class="stat-value" id="stFecha">&mdash;</div><div class="stat-label">Dia</div></div>
+        </div>
+        <div class="form-row" style="max-width:280px;margin-bottom:14px">
+          <div class="form-group">
+            <label>Ver otro dia</label>
+            <input type="date" id="fDia" class="form-control" onchange="cargarDia()">
+          </div>
+        </div>
+        <div id="listaHoy" class="cards-grid"></div>
+      </div>
+
+      <!-- ══ HORARIOS ══ -->
+      <div class="tab-panel" id="tabHorarios">
+        <p class="ayuda">Elija a la persona y programe su semana. La tolerancia son los
+           minutos de gracia antes de que cuente como tardanza.</p>
+        <div class="form-row cols-2" style="max-width:640px">
+          <div class="form-group">
+            <label>Trabajador</label>
+            <select id="selTrabajador" class="form-control" onchange="cargarHorario()"></select>
+          </div>
+          <div class="form-group">
+            <label>PIN para marcar</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="text" id="txtPin" class="form-control" maxlength="10" placeholder="4 digitos">
+              <button class="btn btn-ghost btn-sm" onclick="guardarPin()">Guardar</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div class="card-body">
+            <div class="semana" id="grillaSemana"></div>
+            <div style="margin-top:16px;display:flex;gap:10px">
+              <button class="btn btn-primary" onclick="guardarHorario()">
+                <i class="fa-solid fa-floppy-disk"></i>Guardar horario</button>
+              <button class="btn btn-ghost" onclick="copiarLunes()">
+                <i class="fa-solid fa-copy"></i>Copiar el lunes a toda la semana</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PERMISOS ══ -->
+      <div class="tab-panel" id="tabPermisos">
+        <p class="ayuda">Una falta avisada no cuenta como falta. Registrela aca y el
+           panel del dia la muestra como "Con permiso".</p>
+        <div class="card"><div class="card-body">
+          <div class="form-row cols-4">
+            <div class="form-group"><label>Trabajador</label>
+              <select id="pmUsuario" class="form-control"></select></div>
+            <div class="form-group"><label>Fecha</label>
+              <input type="date" id="pmFecha" class="form-control"></div>
+            <div class="form-group"><label>Tipo</label>
+              <select id="pmTipo" class="form-control">
+                <option value="PermisoHoras">Permiso por horas</option>
+                <option value="SalidaAnticipada">Salida anticipada</option>
+                <option value="InasistenciaJustificada">Falta justificada</option>
+                <option value="Vacaciones">Vacaciones</option>
+                <option value="Descanso">Descanso</option>
+              </select></div>
+            <div class="form-group"><label>Motivo</label>
+              <input type="text" id="pmMotivo" class="form-control" placeholder="Tramite, salud..."></div>
+          </div>
+          <div class="form-row cols-4">
+            <div class="form-group"><label>Desde (opcional)</label>
+              <input type="time" id="pmDesde" class="form-control"></div>
+            <div class="form-group"><label>Hasta (opcional)</label>
+              <input type="time" id="pmHasta" class="form-control"></div>
+            <div class="form-group" style="display:flex;align-items:flex-end">
+              <button class="btn btn-primary" onclick="crearPermiso()">
+                <i class="fa-solid fa-plus"></i>Registrar permiso</button></div>
+          </div>
+        </div></div>
+        <div class="table-container" style="margin-top:16px">
+          <table class="table">
+            <thead><tr><th>Fecha</th><th>Trabajador</th><th>Tipo</th><th>Horario</th><th>Motivo</th><th>Autorizo</th></tr></thead>
+            <tbody id="tbPermisos"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══ DESCUENTOS ══ -->
+      <div class="tab-panel" id="tabDescuentos">
+        <p class="ayuda">Politica general del hotel. Estos valores son los que se usan
+           para calcular cuanto se descuenta por una falta o una tardanza.</p>
+        <div class="card" style="max-width:760px"><div class="card-body">
+          <div class="form-row cols-3">
+            <div class="form-group"><label>Por una falta</label>
+              <select id="poFaltaModo" class="form-control">
+                <option value="Ninguno">No se descuenta</option>
+                <option value="MontoFijo">Un monto fijo</option>
+                <option value="JornalDiario">El jornal del dia</option>
+              </select></div>
+            <div class="form-group"><label>Monto por falta (S/)</label>
+              <input type="number" id="poFaltaMonto" class="form-control" step="0.01" min="0"></div>
+            <div class="form-group"><label>Sueldo mensual de referencia (S/)</label>
+              <input type="number" id="poSueldo" class="form-control" step="0.01" min="0"></div>
+          </div>
+          <div class="form-row cols-3">
+            <div class="form-group"><label>Por tardanza</label>
+              <select id="poTardModo" class="form-control">
+                <option value="Ninguno">No se descuenta</option>
+                <option value="MontoFijo">Un monto fijo</option>
+                <option value="PorMinuto">Por minuto de atraso</option>
+              </select></div>
+            <div class="form-group"><label>Monto por tardanza (S/)</label>
+              <input type="number" id="poTardMonto" class="form-control" step="0.01" min="0"></div>
+            <div class="form-group"><label>Minutos de gracia</label>
+              <input type="number" id="poGracia" class="form-control" min="0"></div>
+          </div>
+          <div class="form-row cols-3">
+            <div class="form-group"><label>Dias del mes</label>
+              <input type="number" id="poDiasMes" class="form-control" min="1"></div>
+            <div class="form-group"><label>Horas por jornada</label>
+              <input type="number" id="poHoras" class="form-control" step="0.5" min="1"></div>
+            <div class="form-group" style="display:flex;align-items:flex-end">
+              <button class="btn btn-primary" onclick="guardarPolitica()">
+                <i class="fa-solid fa-floppy-disk"></i>Guardar politica</button></div>
+          </div>
+          <div class="alert alert-info" style="margin-top:10px">
+            El jornal sale de dividir el sueldo entre los dias del mes, y el valor del
+            minuto de ese jornal entre las horas de jornada. Cambiar esto no toca nada
+            de lo ya registrado.
+          </div>
+        </div></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script>
+const DIAS = ['Lunes','Martes','Miercoles','Jueves','Viernes','Sabado','Domingo'];
+let _personal = [];
+
+// ── HOY ──────────────────────────────────────────────────
+async function cargarDia() {
+  const f = document.getElementById('fDia').value;
+  const r = await api.get('/rrhh/dia' + (f ? '?fecha=' + f : ''));
+  const d = r.data || {};
+  document.getElementById('stPresentes').textContent = d.presentes ?? 0;
+  document.getElementById('stTardanzas').textContent = d.tardanzas ?? 0;
+  document.getElementById('stFaltas').textContent    = d.faltas ?? 0;
+  document.getElementById('stFecha').textContent     = d.dia || '—';
+
+  const cont = document.getElementById('listaHoy');
+  const gente = d.personal || [];
+  if (!gente.length) {
+    cont.innerHTML = `<div class="empty-state">
+      <i class="fa-solid fa-calendar-xmark"></i>
+      <p>Nadie tiene horario programado para este dia.</p>
+      <p class="text-muted">Programelo en la pestaña <b>Horarios</b>.</p></div>`;
+    return;
+  }
+  cont.innerHTML = gente.map(p => {
+    const cls = 'e-' + (p.estado || '').replace(/\s/g, '');
+    let det = '';
+    if (p.estado === 'Falta')        det = 'No marco';
+    else if (p.estado === 'Con permiso') det = esc(p.permiso);
+    else det = `Marco ${p.marcoEntrada || '—'}${p.marcoSalida ? ' / ' + p.marcoSalida : ''}`;
+    return `<div class="persona ${cls}">
+      <div>
+        <div class="nom">${esc(p.nombre)}</div>
+        <div class="car">${esc(p.cargo || '')}${p.turno > 1 ? ' · turno ' + p.turno : ''}</div>
+        <div class="hrs">Le toca ${p.entra} a ${p.sale} · ${det}</div>
+        ${p.cubre ? `<div class="hrs">Lo cubre: <b>${esc(p.cubre)}</b></div>` : ''}
+      </div>
+      <div class="est">${esc(p.estado)}${p.tardanzaMin > 0 ? `<br>${p.tardanzaMin} min` : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── HORARIOS ─────────────────────────────────────────────
+async function cargarPersonal() {
+  const r = await api.get('/rep/usuarios');
+  _personal = (r.data || []).filter(u => u.activo);
+  const ops = _personal.map(u =>
+    `<option value="${u.idUsuario}">${esc(u.nombres || '')} ${esc(u.apellidos || '')} — ${esc(u.rol)}</option>`).join('');
+  document.getElementById('selTrabajador').innerHTML = ops;
+  document.getElementById('pmUsuario').innerHTML = ops;
+}
+
+function pintarGrilla(horarios) {
+  const porDia = {};
+  (horarios || []).forEach(h => { porDia[h.dia] = h; });
+  const cab = `<div class="cab">Dia</div><div class="cab">Entra</div>
+               <div class="cab">Sale</div><div class="cab">Tolerancia (min)</div><div class="cab">Trabaja</div>`;
+  document.getElementById('grillaSemana').innerHTML = cab + DIAS.map(d => {
+    const h = porDia[d];
+    const on = !!h;
+    return `<div class="dia">${d}</div>
+      <div><input type="time" id="hi_${d}" class="form-control" value="${h ? h.horaInicio : '08:00'}"></div>
+      <div><input type="time" id="hf_${d}" class="form-control" value="${h ? h.horaFin : '16:00'}"></div>
+      <div><input type="number" id="tol_${d}" class="form-control" min="0" value="${h ? h.toleranciaMin : 10}"></div>
+      <div><label class="switch"><input type="checkbox" id="on_${d}" ${on ? 'checked' : ''}><span></span></label></div>`;
+  }).join('');
+}
+
+async function cargarHorario() {
+  const id = document.getElementById('selTrabajador').value;
+  if (!id) return;
+  const u = _personal.find(x => x.idUsuario == id);
+  document.getElementById('txtPin').value = (u && u.pinAsistencia) || '';
+  const h = await api.get('/rrhh/horario/' + id);
+  pintarGrilla(Array.isArray(h) ? h : (h.data || []));
+}
+
+function copiarLunes() {
+  const hi = document.getElementById('hi_Lunes').value;
+  const hf = document.getElementById('hf_Lunes').value;
+  const tol = document.getElementById('tol_Lunes').value;
+  DIAS.slice(1).forEach(d => {
+    document.getElementById('hi_' + d).value = hi;
+    document.getElementById('hf_' + d).value = hf;
+    document.getElementById('tol_' + d).value = tol;
+    document.getElementById('on_' + d).checked = true;
+  });
+  toast('Se copio el lunes a toda la semana. Falta guardar.', 'info');
+}
+
+async function guardarHorario() {
+  const id = document.getElementById('selTrabajador').value;
+  if (!id) { toast('Elija un trabajador', 'warning'); return; }
+  const horarios = DIAS.filter(d => document.getElementById('on_' + d).checked).map(d => ({
+    dia: d, turno: 1,
+    horaInicio: document.getElementById('hi_' + d).value,
+    horaFin:    document.getElementById('hf_' + d).value,
+    toleranciaMin: parseInt(document.getElementById('tol_' + d).value) || 10,
+  }));
+  const malo = horarios.find(h => !h.horaInicio || !h.horaFin);
+  if (malo) { toast(`Complete las horas del ${malo.dia}`, 'warning'); return; }
+  try {
+    await api.put('/rrhh/horario/' + id, { horarios });
+    toast('Horario guardado', 'success');
+    cargarDia();
+  } catch (e) { toast(e.message || 'No se pudo guardar', 'error'); }
+}
+
+async function guardarPin() {
+  const id  = document.getElementById('selTrabajador').value;
+  const pin = document.getElementById('txtPin').value.trim();
+  if (!id) return;
+  if (pin && !/^\d{4,10}$/.test(pin)) { toast('El PIN debe ser de 4 a 10 numeros', 'warning'); return; }
+  const u = _personal.find(x => x.idUsuario == id);
+  try {
+    // Se manda el usuario completo: la pantalla de usuarios usa el mismo
+    // endpoint y sin estos campos el backend los dejaria como estan.
+    await api.put('/rep/usuarios/' + id, {
+      usuario: u.usuario, nombres: u.nombres, apellidos: u.apellidos,
+      email: u.email, rol: u.rol, activo: 1, pinAsistencia: pin,
+    });
+    toast(pin ? 'PIN guardado' : 'PIN quitado', 'success');
+    await cargarPersonal();
+  } catch (e) { toast(e.message || 'No se pudo guardar el PIN', 'error'); }
+}
+
+// ── PERMISOS ─────────────────────────────────────────────
+async function crearPermiso() {
+  const b = {
+    idUsuario: parseInt(document.getElementById('pmUsuario').value),
+    fecha:     document.getElementById('pmFecha').value,
+    tipo:      document.getElementById('pmTipo').value,
+    horaDesde: document.getElementById('pmDesde').value,
+    horaHasta: document.getElementById('pmHasta').value,
+    motivo:    document.getElementById('pmMotivo').value.trim(),
+  };
+  if (!b.fecha) { toast('Indique la fecha', 'warning'); return; }
+  try {
+    await api.post('/rrhh/permisos', b);
+    toast('Permiso registrado', 'success');
+    document.getElementById('pmMotivo').value = '';
+    cargarPermisos(); cargarDia();
+  } catch (e) { toast(e.message || 'No se pudo registrar', 'error'); }
+}
+
+async function cargarPermisos() {
+  const r = await api.get('/rrhh/permisos');
+  const lista = Array.isArray(r) ? r : (r.data || []);
+  const tb = document.getElementById('tbPermisos');
+  if (!lista.length) {
+    tb.innerHTML = `<tr><td colspan="6" class="text-muted" style="text-align:center;padding:18px">
+      Sin permisos registrados este mes.</td></tr>`;
+    return;
+  }
+  tb.innerHTML = lista.map(p => `<tr${p.anulado ? ' style="opacity:.5"' : ''}>
+    <td>${esc(p.fecha)}</td><td><strong>${esc(p.trabajador)}</strong></td>
+    <td>${esc(p.tipo)}</td>
+    <td class="muted">${p.horaDesde ? esc(p.horaDesde) + ' a ' + esc(p.horaHasta) : 'Todo el dia'}</td>
+    <td class="muted">${esc(p.motivo || '—')}</td>
+    <td class="muted">${esc(p.autoriza || '—')}</td></tr>`).join('');
+}
+
+// ── DESCUENTOS ───────────────────────────────────────────
+async function cargarPolitica() {
+  const r = await api.get('/rrhh/politica');
+  const p = r.data || {};
+  document.getElementById('poFaltaModo').value  = p.faltaModo || 'Ninguno';
+  document.getElementById('poFaltaMonto').value = p.faltaMonto ?? 0;
+  document.getElementById('poTardModo').value   = p.tardanzaModo || 'Ninguno';
+  document.getElementById('poTardMonto').value  = p.tardanzaMonto ?? 0;
+  document.getElementById('poGracia').value     = p.tardanzaGraciaMin ?? 10;
+  document.getElementById('poSueldo').value     = p.sueldoMensual ?? 0;
+  document.getElementById('poDiasMes').value    = p.diasMes ?? 30;
+  document.getElementById('poHoras').value      = p.horasJornada ?? 8;
+}
+
+async function guardarPolitica() {
+  try {
+    await api.post('/rrhh/politica', {
+      idUsuario: 0,
+      faltaModo:    document.getElementById('poFaltaModo').value,
+      faltaMonto:   parseFloat(document.getElementById('poFaltaMonto').value) || 0,
+      tardanzaModo: document.getElementById('poTardModo').value,
+      tardanzaMonto: parseFloat(document.getElementById('poTardMonto').value) || 0,
+      tardanzaGraciaMin: parseInt(document.getElementById('poGracia').value) || 0,
+      sueldoMensual: parseFloat(document.getElementById('poSueldo').value) || 0,
+      diasMes:      parseInt(document.getElementById('poDiasMes').value) || 30,
+      horasJornada: parseFloat(document.getElementById('poHoras').value) || 8,
+    });
+    toast('Politica guardada', 'success');
+  } catch (e) { toast(e.message || 'No se pudo guardar', 'error'); }
+}
+
+// ── COMUN ────────────────────────────────────────────────
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function cambiarTab(tab, btn) {
+  document.querySelectorAll('#mainTabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+}
+
+async function init() {
+  const hoy = new Date().toISOString().split('T')[0];
+  if (!document.getElementById('pmFecha').value) document.getElementById('pmFecha').value = hoy;
+  await cargarPersonal();
+  await Promise.all([cargarDia(), cargarPermisos(), cargarPolitica()]);
+  await cargarHorario();
+}
+
+init();
+setInterval(cargarDia, 60000);   // el panel del dia se refresca solo
+</script>
+</body>
+</html>

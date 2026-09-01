@@ -474,6 +474,19 @@ function _renderTablaUsuarios(lista) {
 function abrirModalUsuario(id = null) {
   _usrEditId = id;
 
+  // SUPERADMIN solo aparece si quien esta logueado lo es. Al admin del hotel
+  // ni se le muestra: ese rol es de SistemasVIP. (El servidor lo rechaza
+  // igual si alguien manda el rol a mano.)
+  const yo = JSON.parse(localStorage.getItem('hv_usuario') || '{}');
+  const combo = document.getElementById('usrRol');
+  const yaEsta = [...combo.options].some(o => o.value === 'SUPERADMIN');
+  if ((yo.rol || '').toUpperCase() === 'SUPERADMIN' && !yaEsta) {
+    const op = document.createElement('option');
+    op.value = 'SUPERADMIN';
+    op.textContent = 'SUPERADMIN — SistemasVIP, configura el sistema';
+    combo.insertBefore(op, combo.firstChild);
+  }
+
   const titulo     = document.getElementById('modalUsrTitulo');
   const passSection = document.getElementById('usrPassSection');
 

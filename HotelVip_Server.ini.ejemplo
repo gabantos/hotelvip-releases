@@ -75,6 +75,10 @@ Servicios=1
 Reportes=1
 Notificaciones=1
 Sincronizacion=1
+; RRHH (asistencia, horarios, permisos y descuentos) se vende APARTE, junto
+; con el lector de huella. Poner en 1 solo cuando el hotel lo haya contratado:
+; con 0 el modulo no aparece en el menu y el servidor rechaza sus rutas.
+RRHH=0
 
 ; Sync cloud->local (Booking/Airbnb/motor propio -> recepcion local).
 ; Activar (Habilitado=1 + Token) recien cuando el VPS PHP este desplegado.
