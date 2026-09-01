@@ -1,6 +1,6 @@
 {
-  "version": "2.0.2",
-  "fecha": "2026-08-31",
+  "version": "2.0.3",
+  "fecha": "2026-09-01",
   "changelog": [
     "Correccion importante: el servidor mostraba de la nada un cuadro de error (EAccessViolation) y quedaba congelado hasta que alguien lo cerraba. Pasaba cada vez que se cortaba el internet",
     "Ahora cualquier error queda anotado en el registro y el sistema sigue trabajando, sin cuadros en pantalla delante del huesped",
@@ -8,5 +8,5 @@
     "Nuevo: pantalla de modulos, ordenada por area y segun el permiso de cada usuario",
     "El respaldo diario de la base y el envio de datos a la nube ya no se interrumpen cuando falla la conexion"
   ],
-  "url_descarga": "https://github.com/gabantos/hotelvip-releases/releases/download/v2.0.2/HotelVip_v2.0.2.zip"
+  "url_descarga": "https://github.com/gabantos/hotelvip-releases/releases/download/v2.0.3/HotelVip_v2.0.3.zip"
 }
