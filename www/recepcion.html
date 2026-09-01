@@ -164,6 +164,22 @@
       border: 1px solid rgba(255,255,255,.22); border-radius: 5px;
       padding: 3px 7px; font-size: 10px; font-weight: 700; color: #fff;
     }
+    /* Desde que hora se puede volver a vender la habitacion. Es el dato que
+       antes recepcion tenia que calcular de memoria. */
+    .hab-libre {
+      margin-top: 6px; display: flex; align-items: center; gap: 5px;
+      font-size: 10px; font-weight: 700; color: rgba(255,255,255,.9);
+      background: rgba(255,255,255,.12); border-radius: 5px; padding: 3px 7px;
+    }
+    .hab-libre.ya { background: rgba(34,197,94,.24); }
+    .hab-libre i  { font-size: 9px; opacity: .85; }
+    .d-horarios {
+      margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border);
+    }
+    .d-horarios-tit {
+      font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--text-muted); font-weight: 700; margin-bottom: 4px;
+    }
     .hab-cod {
       margin-top: 7px; font-size: 9.5px; letter-spacing: .04em;
       color: rgba(255,255,255,.55); font-weight: 600;
@@ -499,6 +515,37 @@ async function cargarMapa() {
 
 /* Tarjeta de habitacion: dice de un vistazo QUIEN esta adentro, desde
    cuando y hasta cuando, sin tener que abrir el detalle. */
+/* ── Horarios: a que hora sale, cuando se limpia, desde cuando se vende ──
+   El backend manda las fechas como 'AAAA-MM-DD HH:MM'. Aca solo se traducen
+   a algo que una recepcionista lea de un vistazo: "hoy 12:45", "manana 12:00". */
+function hhmm(s){ return s ? String(s).slice(11,16) : ''; }
+function cuando(s){
+  if (!s) return '';
+  const dia = String(s).slice(0,10);
+  const hoy = new Date();
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const man = new Date(Date.now() + 86400000);
+  if (dia === iso(hoy)) return 'hoy ' + hhmm(s);
+  if (dia === iso(man)) return 'manana ' + hhmm(s);
+  return fFechaCorta(dia) + ' ' + hhmm(s);
+}
+// La linea que resume la disponibilidad. Es lo que contesta las dos preguntas
+// del mostrador: "hasta que hora me puedo quedar" y "cuando la puedo vender".
+// Cambia segun el momento de la habitacion: en una RESERVADA no sirve decir
+// "libre" (ya esta vendida), sirve saber si va a estar lista para el huesped.
+function lineaLibre(h, est){
+  const sucia = h.estadoLimpieza === 'Sucia' || h.estadoLimpieza === 'EnLimpieza';
+
+  if (est === 'RESERVADA') {
+    if (!sucia || !h.limpiezaHasta) return '';
+    return `<div class="hab-libre"><i class="fa-solid fa-broom"></i>Lista ${hhmm(h.limpiezaHasta)}</div>`;
+  }
+  if (h.libreYa) return `<div class="hab-libre ya"><i class="fa-solid fa-circle-check"></i>Libre ahora</div>`;
+  if (!h.libreDesde) return '';
+  const marca = h.salidaConfirmada ? ' <b>(salida confirmada)</b>' : '';
+  return `<div class="hab-libre"><i class="fa-solid fa-clock"></i>Libre ${cuando(h.libreDesde)}${marca}</div>`;
+}
+
 function tarjetaHab(h) {
   const sel = habSeleccionada && habSeleccionada.idHabitacion === h.idHabitacion ? ' selected' : '';
   const r   = h.reserva;
@@ -528,10 +575,12 @@ function tarjetaHab(h) {
         <div><span>Salida</span><strong>${esc(salida)}</strong></div>
       </div>
       ${aviso}
+      ${lineaLibre(h, est)}
       <div class="hab-cod">${esc(r.codigo || '')}</div>`;
   } else if (est === 'LIMPIEZA' || est === 'INSPECCION') {
     cuerpo = `<div class="hab-vacia"><i class="fa-solid fa-broom"></i>
-                <span>${est === 'LIMPIEZA' ? 'En limpieza' : 'En inspeccion'}</span></div>`;
+                <span>${est === 'LIMPIEZA' ? 'En limpieza' : 'En inspeccion'}</span></div>
+              ${lineaLibre(h, est)}`;
   } else if (est === 'MANTENIMIENTO' || est === 'BLOQUEADA') {
     cuerpo = `<div class="hab-vacia"><i class="fa-solid fa-${est === 'BLOQUEADA' ? 'lock' : 'wrench'}"></i>
                 <span>${ETIQUETA[est]}</span></div>`;
@@ -717,6 +766,28 @@ const ESTADO_ICON = {
   INSPECCION:    'fa-magnifying-glass'
 };
 
+// El bloque de horarios del panel: la secuencia completa de la habitacion.
+// Sale / se limpia / vuelve a estar vendible, con las horas de verdad.
+function bloqueHorarios(h){
+  const f = [];
+  if (h.salidaPrevista)
+    f.push(`<div class="d-row"><span>Debe dejarla</span>
+              <strong>${cuando(h.salidaPrevista)}</strong></div>`);
+  if (h.limpiezaDesde)
+    f.push(`<div class="d-row"><span>Limpieza</span>
+              <strong>${hhmm(h.limpiezaDesde)} &rarr; ${hhmm(h.limpiezaHasta)}
+              <span style="opacity:.6">(${h.minutosLimpieza} min)</span></strong></div>`);
+  if (h.libreDesde)
+    f.push(`<div class="d-row"><span>Se puede vender</span>
+              <strong style="color:${h.libreYa ? 'var(--green)' : 'var(--yellow)'}">
+                ${h.libreYa ? 'ahora' : cuando(h.libreDesde)}</strong></div>`);
+  if (h.horaCheckin)
+    f.push(`<div class="d-row"><span>Entrada del hotel</span>
+              <strong>${h.horaCheckin}</strong></div>`);
+  if (!f.length) return '';
+  return `<div class="d-horarios"><div class="d-horarios-tit">Horarios</div>${f.join('')}</div>`;
+}
+
 function renderDetalle(h) {
   const est      = estadoDe(h);
   const color    = ESTADO_COLOR[est] || '#888';
@@ -763,6 +834,7 @@ function renderDetalle(h) {
         <span>Piso</span>
         <strong>${h.piso || '-'}</strong>
       </div>
+      ${bloqueHorarios(h)}
       ${amenHtml ? `<div class="d-amenidades">${amenHtml}</div>` : ''}
     </div>
     <div class="acciones">${accionesHtml}</div>
@@ -794,6 +866,12 @@ function getAcciones(h) {
     btns.push(`<button class="btn-accion btn-checkout" onclick="hacerCheckout(${r.idReserva}, ${Number(r.saldo)||0})"><i class="fa-solid fa-right-from-bracket"></i>Check-out y cobro</button>`);
     btns.push(`<button class="btn-accion btn-reservar" onclick="irAServicios(${r.idReserva})"><i class="fa-solid fa-concierge-bell"></i>Cargar consumo a la cuenta</button>`);
     btns.push(`<button class="btn-accion btn-reservar" onclick="verReserva(${r.idReserva})"><i class="fa-solid fa-file-lines"></i>Ver la cuenta</button>`);
+    // El huesped ya dijo si sigue o no. Si dijo que no, la habitacion se puede
+    // vender para esa misma tarde sin esperar a que efectivamente se vaya.
+    if (h.salidaConfirmada)
+      btns.push(`<button class="btn-accion btn-bloquear" onclick="quitarSalidaConfirmada(${id})"><i class="fa-solid fa-rotate-left"></i>Se queda mas: anular salida</button>`);
+    else
+      btns.push(`<button class="btn-accion btn-limpieza" onclick="confirmarSalida(${id}, '${esc(h.salidaPrevista||'')}', ${h.minutosLimpieza||45})"><i class="fa-solid fa-door-open"></i>Confirmar que no sigue</button>`);
 
   } else if (est === 'OCUPADA' && !r) {
     // Ocupada sin reserva asociada: dato inconsistente, se avisa en vez de
@@ -803,6 +881,9 @@ function getAcciones(h) {
     btns.push(`<button class="btn-accion btn-limpieza" onclick="cambiarEstadoFisico('Disponible',${id},'Sucia')"><i class="fa-solid fa-broom"></i>Liberar y enviar a limpieza</button>`);
 
   } else if (est === 'LIMPIEZA') {
+    // Se puede vender mientras se limpia: la habitacion esta libre, lo unico
+    // que falta es dejarla lista. Lo que no se puede es entregarla antes.
+    btns.push(`<button class="btn-accion btn-reservar" onclick="nuevaReserva(${id},false)"><i class="fa-solid fa-calendar-plus"></i>Reservar${h.libreYa ? '' : ' (entra ' + cuando(h.libreDesde) + ')'}</button>`);
     btns.push(`<button class="btn-accion btn-checkin"  onclick="cambiarLimpieza('Limpia',${id})"><i class="fa-solid fa-check"></i>Marcar como limpia</button>`);
     btns.push(`<button class="btn-accion btn-mantto"   onclick="cambiarLimpieza('Inspeccion',${id})"><i class="fa-solid fa-magnifying-glass"></i>Enviar a inspeccion</button>`);
 
@@ -826,6 +907,45 @@ function getAcciones(h) {
    quedan solo para limpieza y mantenimiento, que es lo unico
    que de verdad es "pintar la habitacion".
 ═══════════════════════════════════════════════════════════ */
+
+/* --- 0. Salida confirmada por el huesped ---
+   Recepcion le pregunto si sigue una noche mas y dijo que no. Con eso la
+   habitacion pasa a estar vendible desde que termine la limpieza, aunque el
+   huesped todavia este adentro. Es la venta de la tarde que hoy se pierde. */
+function confirmarSalida(idHab, salidaPrevista, minutos) {
+  const h = habSeleccionada;
+  // Si no hay salida pactada (raro pero pasa con reservas viejas), se cuenta
+  // desde ahora: al menos queda una hora concreta y no un dato vacio.
+  const base = salidaPrevista ? new Date(salidaPrevista.replace(' ', 'T')) : new Date();
+  const lib  = new Date(base.getTime() + (Number(minutos) || 45) * 60000);
+  const p    = n => String(n).padStart(2, '0');
+  const txt  = `${lib.getFullYear()}-${p(lib.getMonth()+1)}-${p(lib.getDate())} ${p(lib.getHours())}:${p(lib.getMinutes())}`;
+
+  mostrarConfirm(
+    'El huesped no continua',
+    `Habitacion ${h?.numero || ''} — queda libre ${cuando(txt)}`,
+    'Se va a poder reservar desde esa hora, que es cuando termina la limpieza. El huesped sigue adentro hasta que hagas el check-out.',
+    async function() {
+      try {
+        await api.put(`/habitaciones/${idHab}/libre-desde`, { libreDesde: txt });
+        await cargarMapa();
+        seleccionarHab(idHab);
+      } catch (e) { alert(e.message || 'No se pudo guardar'); }
+    });
+}
+function quitarSalidaConfirmada(idHab) {
+  mostrarConfirm(
+    'El huesped se queda',
+    `Habitacion ${habSeleccionada?.numero || ''}`,
+    'Se borra la hora de salida confirmada y la habitacion deja de ofrecerse para hoy.',
+    async function() {
+      try {
+        await api.put(`/habitaciones/${idHab}/libre-desde`, { libreDesde: '' });
+        await cargarMapa();
+        seleccionarHab(idHab);
+      } catch (e) { alert(e.message || 'No se pudo guardar'); }
+    });
+}
 
 // --- 1. Reservar / walk-in: se abre el alta con la habitacion ya elegida ---
 function nuevaReserva(idHab, walkin) {

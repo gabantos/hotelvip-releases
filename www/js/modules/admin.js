@@ -49,6 +49,7 @@ function _initTabs() {
       if (tab === 'dashboard' && !_dashData) cargarDashboard();
       if (tab === 'usuarios')  cargarUsuarios();
       if (tab === 'huespedes') cargarHuespedes();
+      if (tab === 'cierres')   cargarCierres();
     });
   });
 }
@@ -665,6 +666,127 @@ function _renderPaginacion(pagActual, totalPages) {
       Siguiente <i class="fa-solid fa-chevron-right"></i></button>`;
   }
   cont.innerHTML = html;
+}
+
+/* ================================================================
+   CIERRES DE CAJA — auditoria del administrador
+
+   Cada turno cerrado deja dos numeros: lo que el sistema dice que
+   deberia haber en la caja y lo que el cajero conto de verdad. La
+   diferencia entre los dos es TODO lo que hay que mirar: ahi salen
+   el faltante, el vuelto mal dado y el cobro que nunca se registro.
+   El administrador marca el cierre como revisado y, si no cuadro,
+   deja escrito a que se debio.
+================================================================ */
+function _soles(n) {
+  return 'S/ ' + Number(n || 0).toLocaleString('es-PE',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+// 'AAAA-MM-DD HH:MM' -> 'DD/MM HH:MM'
+function _fechaCorta(s) {
+  if (!s) return '—';
+  const [d, h] = String(s).split(' ');
+  const p = (d || '').split('-');
+  return p.length === 3 ? `${p[2]}/${p[1]} ${h || ''}`.trim() : s;
+}
+
+async function cargarCierres() {
+  const cuerpo = document.getElementById('cuerpoCierres');
+  const kpis   = document.getElementById('cieKpis');
+  if (!cuerpo) return;
+
+  // Por defecto, el mes en curso: es lo que se mira casi siempre.
+  const hoy = new Date();
+  const iso = d => d.toISOString().split('T')[0];
+  const eDesde = document.getElementById('cieDesde');
+  const eHasta = document.getElementById('cieHasta');
+  if (!eDesde.value) eDesde.value = iso(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+  if (!eHasta.value) eHasta.value = iso(hoy);
+
+  const q = new URLSearchParams({ desde: eDesde.value, hasta: eHasta.value });
+  if (document.getElementById('cieSoloDesc').checked) q.set('descuadres', '1');
+
+  cuerpo.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:26px;color:var(--text-muted)">Cargando...</td></tr>`;
+  try {
+    const res = await api.get('/caja/turnos?' + q.toString());
+    const d = res.data || res;
+    _renderKpisCierres(kpis, d);
+    _renderTablaCierres(cuerpo, d.turnos || []);
+  } catch (e) {
+    kpis.innerHTML = '';
+    cuerpo.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:26px;color:var(--red)">${_esc(e.message || 'No se pudo cargar')}</td></tr>`;
+  }
+}
+
+function _renderKpisCierres(cont, d) {
+  const dif = Number(d.totalDiferencia) || 0;
+  // El signo importa: sobrante y faltante son problemas distintos.
+  const colorDif = Math.abs(dif) < 0.01 ? 'var(--green)' : (dif < 0 ? 'var(--red)' : 'var(--yellow)');
+  cont.innerHTML = `
+    <div class="kpi-card"><div class="kpi-value">${d.cantidad || 0}</div>
+      <div class="kpi-label">Cierres en el periodo</div></div>
+    <div class="kpi-card"><div class="kpi-value">${_soles(d.totalCobrado)}</div>
+      <div class="kpi-label">Cobrado</div></div>
+    <div class="kpi-card"><div class="kpi-value" style="color:${colorDif}">${_soles(dif)}</div>
+      <div class="kpi-label">Diferencia acumulada</div></div>
+    <div class="kpi-card"><div class="kpi-value" style="color:${(d.conDescuadre||0) ? 'var(--yellow)' : 'var(--green)'}">${d.conDescuadre || 0}</div>
+      <div class="kpi-label">No cuadran</div></div>
+    <div class="kpi-card"><div class="kpi-value" style="color:${(d.sinRevisar||0) ? 'var(--yellow)' : 'var(--green)'}">${d.sinRevisar || 0}</div>
+      <div class="kpi-label">Sin revisar</div></div>`;
+}
+
+function _renderTablaCierres(cuerpo, lista) {
+  if (!lista.length) {
+    cuerpo.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:34px;color:var(--text-muted)">
+      No hay cierres de caja en ese periodo.</td></tr>`;
+    return;
+  }
+  cuerpo.innerHTML = lista.map(t => {
+    const dif   = Number(t.diferencia) || 0;
+    const cuadra = Math.abs(dif) < 0.01;
+    const color = cuadra ? 'var(--green)' : (dif < 0 ? 'var(--red)' : 'var(--yellow)');
+    const signo = dif > 0 ? '+' : '';
+    return `
+    <tr${cuadra ? '' : ' style="background:rgba(245,158,11,.06)"'}>
+      <td>${_esc(_fechaCorta(t.cierre))}</td>
+      <td>${_esc(t.caja)}<br><span style="font-size:11px;color:var(--text-muted)">${_esc(t.cajero)}</span></td>
+      <td style="text-align:right">${_soles(t.saldoInicial)}</td>
+      <td style="text-align:right">${_soles(t.cobrado)}
+        ${Number(t.pagosAnulados) > 0
+          ? `<br><span style="font-size:11px;color:var(--yellow)" title="Pagos anulados en este turno">${t.pagosAnulados} anulado(s)</span>` : ''}</td>
+      <td style="text-align:right">${_soles(t.egresos)}</td>
+      <td style="text-align:right">${_soles(t.saldoSistema)}</td>
+      <td style="text-align:right">${_soles(t.saldoContado)}</td>
+      <td style="text-align:right;color:${color};font-weight:700">${signo}${_soles(dif)}</td>
+      <td>${t.revisado
+            ? `<span style="color:var(--green)"><i class="fa-solid fa-check"></i> ${_esc(t.revisadoPor || '')}</span>
+               ${t.notaRevision ? `<br><span style="font-size:11px;color:var(--text-muted)">${_esc(t.notaRevision)}</span>` : ''}`
+            : `<span style="color:var(--text-muted)">Pendiente</span>`}</td>
+      <td>${t.revisado ? '' :
+        `<button class="btn btn-sm" onclick="revisarCierre(${t.idTurno}, ${dif})">Revisar</button>`}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function revisarCierre(idTurno, diferencia) {
+  // Si no cuadro, la explicacion es obligatoria: un descuadre sin motivo
+  // anotado no sirve de nada tres meses despues.
+  const cuadra = Math.abs(Number(diferencia) || 0) < 0.01;
+  const nota = prompt(cuadra
+    ? 'Observacion (opcional):'
+    : `Este cierre no cuadra por ${_soles(diferencia)}. A que se debio?`,
+    cuadra ? 'Revisado, cuadra' : '');
+  if (nota === null) return;
+  if (!cuadra && !nota.trim()) {
+    alert('Escribi a que se debio la diferencia antes de darlo por revisado.');
+    return;
+  }
+  try {
+    await api.post(`/caja/turno/${idTurno}/revisar`, { nota: nota.trim() });
+    cargarCierres();
+  } catch (e) {
+    alert(e.message || 'No se pudo guardar la revision');
+  }
 }
 
 /* ================================================================

@@ -143,6 +143,9 @@
         <button class="tab-btn" data-tab="reportes">
           <i class="fa-solid fa-chart-bar"></i> Reportes
         </button>
+        <button class="tab-btn" data-tab="cierres">
+          <i class="fa-solid fa-cash-register"></i> Cierres de caja
+        </button>
         <button class="tab-btn" data-tab="usuarios">
           <i class="fa-solid fa-user-gear"></i> Usuarios
         </button>
@@ -252,7 +255,55 @@
       </div><!-- /panel-reportes -->
 
       <!-- ═══════════════════════════════════════════════════
-           TAB 3: USUARIOS
+           TAB 3: CIERRES DE CAJA (auditoria)
+           El administrador revisa los cierres sin depender de que el
+           cajero le cuente. Lo que importa es la DIFERENCIA entre lo
+           contado en efectivo y lo que dice el sistema.
+      ════════════════════════════════════════════════════ -->
+      <div class="tab-panel" id="panel-cierres">
+        <div class="filtros-bar" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px">
+          <div class="form-group" style="margin:0">
+            <label>Desde</label><input type="date" id="cieDesde" class="form-control">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Hasta</label><input type="date" id="cieHasta" class="form-control">
+          </div>
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-muted);padding-bottom:9px">
+            <input type="checkbox" id="cieSoloDesc"> Solo los que no cuadran
+          </label>
+          <button class="btn btn-primary" onclick="cargarCierres()">
+            <i class="fa-solid fa-magnifying-glass"></i> Buscar
+          </button>
+        </div>
+
+        <div class="kpi-grid" id="cieKpis" style="margin-bottom:16px"></div>
+
+        <div class="table-wrapper">
+          <table id="tablaCierres">
+            <thead>
+              <tr>
+                <th>Cierre</th>
+                <th>Caja / Cajero</th>
+                <th style="text-align:right">Inicial</th>
+                <th style="text-align:right">Cobrado</th>
+                <th style="text-align:right">Egresos</th>
+                <th style="text-align:right">Sistema</th>
+                <th style="text-align:right">Contado</th>
+                <th style="text-align:right">Diferencia</th>
+                <th>Revisado</th>
+                <th style="width:110px"></th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoCierres">
+              <tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-muted)">
+                Elegi un periodo y toca Buscar.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div><!-- /panel-cierres -->
+
+      <!-- ═══════════════════════════════════════════════════
+           TAB 4: USUARIOS
       ════════════════════════════════════════════════════ -->
       <div class="tab-panel" id="panel-usuarios">
         <div class="page-header" style="margin-bottom:16px">

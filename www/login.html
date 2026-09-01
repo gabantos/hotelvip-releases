@@ -244,6 +244,20 @@
 // Si ya tiene sesion, redirigir directo
 if (api._token) window.location.href = 'recepcion.html';
 
+// El servidor sabe cual es su base; la pantalla se la pregunta al cargar.
+// Antes el schema iba escrito a mano en cada copia de este archivo, y bastaba
+// copiar el del central sobre un tenant para dejarlo apuntando a la base
+// equivocada ("SELECT command denied ... hotel_001.seg_usuarios").
+// Si /health no contesta, queda el valor del archivo y no se rompe nada.
+(async function tomarSchemaDelServidor() {
+  try {
+    const r = await fetch('/health', { cache: 'no-store' });
+    const j = await r.json();
+    if (j && j.schema) document.getElementById('inSchema').value = j.schema;
+    if (j && j.hotel)  document.title = j.hotel + ' — Ingreso';
+  } catch (e) { /* sin servidor: se usa lo que ya tenia el campo */ }
+})();
+
 document.getElementById('formLogin').addEventListener('submit', async function(e) {
   e.preventDefault();
 

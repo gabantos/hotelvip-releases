@@ -438,7 +438,8 @@
             <label>Numero de Documento</label>
             <div style="display:flex;gap:6px">
               <input type="text" class="form-control" id="nNumDoc" placeholder="12345678"
-                     maxlength="12" style="flex:1">
+                     maxlength="12" style="flex:1"
+                     oninput="autoBuscarDoc()" onblur="autoBuscarDoc(true)">
               <button class="btn btn-primary btn-sm" onclick="buscarHuesped()">Buscar</button>
             </div>
           </div>
@@ -1178,10 +1179,79 @@ async function recotizar() {
   } catch(e) {}
 }
 
-async function buscarHuesped() {
+// El recepcionista tiene al huesped enfrente: que tenga que teclear el numero
+// y ADEMAS apretar "Buscar" es un paso de mas. Con DNI dispara solo al llegar
+// a los 8 digitos; con pasaporte o carne de extranjeria no hay a quien
+// consultar, asi que espera a que salga del campo y solo mira si ya existe en
+// la base del hotel.
+let _tDoc = null, _ultDoc = '';
+function autoBuscarDoc(alSalir) {
+  clearTimeout(_tDoc);
+  const tipo = document.getElementById('nTipoDoc').value;
+  const num  = document.getElementById('nNumDoc').value.trim();
+  if (!num || num === _ultDoc) return;
+
+  // El DNI dispara a los 8 digitos y el RUC a los 11: son largos fijos, asi
+  // que no hay que esperar a que el recepcionista salga del campo.
+  const auto = (tipo === 'DNI' && num.length === 8) || (tipo === 'RUC' && num.length === 11);
+  if (!auto && !alSalir) return;                  // extranjero: recien al salir
+  if (!auto && num.length < 4) return;
+
+  _tDoc = setTimeout(() => { _ultDoc = num; buscarHuesped(true); }, auto ? 250 : 0);
+}
+
+// auto = lo disparo el propio campo. Cambia solo los mensajes: si el usuario
+// apreto el boton espera una respuesta, si fue automatico no hay que molestarlo.
+async function buscarHuesped(auto) {
   const tipoDoc = document.getElementById('nTipoDoc').value;
   const numDoc  = document.getElementById('nNumDoc').value.trim();
-  if (!numDoc) { toast('Ingrese numero de documento', 'warning'); return; }
+  if (!numDoc) { if (!auto) toast('Ingrese numero de documento', 'warning'); return; }
+  _ultDoc = numDoc;
+
+  // Con documento extranjero NO se consulta a RENIEC: no esta ahi. Se busca en
+  // la base del hotel por si ya se alojo antes, y si no, va a mano.
+  if (tipoDoc !== 'DNI') {
+    document.getElementById('nTipoIGV').value = (tipoDoc === 'PASAPORTE') ? 'EXONERADO' : 'GENERAL';
+  }
+
+  // ── RUC: empresa que factura a su nombre ──
+  // Trae razon social, direccion y telefono de la SUNAT. Es lo que evita que
+  // el recepcionista teclee una razon social larga y la escriba distinta cada
+  // vez, que despues es un problema al facturar.
+  if (tipoDoc === 'RUC' && numDoc.length === 11) {
+    const result    = document.getElementById('hspResult');
+    const formNuevo = document.getElementById('hspFormNuevo');
+    try {
+      const res = await api.get('/huespedes/ruc?ruc=' + numDoc);
+      const d = res.data || {};
+      hspData = { id: d.idHuesped || null, nuevo: !d.idHuesped };
+      document.getElementById('nNombres').value   = d.razonSocial || '';
+      document.getElementById('nApellidos').value = '';
+      document.getElementById('nTipoIGV').value   = 'GENERAL';
+      document.getElementById('nPais').value      = 'PERU';
+      if (d.email)    document.getElementById('nEmail').value = d.email;
+      if (d.telefono) document.getElementById('nWA').value    = d.telefono;
+
+      result.style.display = 'block';
+      result.className = 'hsp-result' + (d.idHuesped ? ' existe' : '');
+      document.getElementById('hspNombre').textContent = d.razonSocial || 'Sin razon social';
+      // El estado importa: si la empresa esta de baja, la factura se rechaza.
+      const alerta = (d.estado && d.estado.toUpperCase() !== 'ACTIVO')
+        ? ' · OJO: figura ' + d.estado : '';
+      document.getElementById('hspDetalle').textContent =
+        (d.direccion || 'Sin direccion registrada') + alerta;
+      if (alerta) toast('Esta empresa figura ' + d.estado + ' en SUNAT', 'warning');
+      formNuevo.style.display = d.idHuesped ? 'none' : 'block';
+    } catch (e) {
+      // Nunca frenar la atencion: se avisa y se sigue a mano.
+      if (!auto) toast(e.message, 'warning');
+      hspData = { id: null, nuevo: true };
+      result.style.display = 'none';
+      formNuevo.style.display = 'block';
+      document.getElementById('nNombres').focus();
+    }
+    return;
+  }
 
   const result   = document.getElementById('hspResult');
   const formNuevo= document.getElementById('hspFormNuevo');

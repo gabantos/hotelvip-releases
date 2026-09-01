@@ -1,5 +1,5 @@
 {
-  "version": "2.0.4",
+  "version": "2.0.5",
   "fecha": "2026-09-01",
   "changelog": [
     "Correccion importante: editar un tipo de habitacion le borraba el precio y quedaba en cero. La pagina web habria ofrecido habitaciones a S/0 y el sistema las habria cobrado en 0",
@@ -8,7 +8,13 @@
     "Nuevo nivel SUPERADMIN de SistemasVIP: el hotel maneja todo lo suyo, pero las claves de facturacion electronica y del proveedor de consultas quedan fuera de su alcance",
     "El panel del propietario ahora muestra las reservas de la web con su cobro, y las agencias con sus hojas de liquidacion",
     "El minibar ya se puede cargar desde el sistema (antes la lista nacia vacia y todo consumo daba 'Stock insuficiente')",
-    "Modulo de personal y asistencia listo, que se activa cuando el hotel lo contrata junto con el lector de huella"
+    "Modulo de personal y asistencia listo, que se activa cuando el hotel lo contrata junto con el lector de huella",
+    "Recepcion ahora muestra a que hora debe dejar la habitacion el huesped, cuanto dura la limpieza y desde que hora se puede volver a vender",
+    "Nuevo boton 'Confirmar que no sigue': si el huesped avisa que no se queda, la habitacion se puede vender para esa misma tarde sin esperar a que se vaya",
+    "Correccion importante: el check-out dejaba la habitacion sucia pero no le avisaba a Housekeeping. La lista de la mucama quedaba vacia aunque hubiera habitaciones sin limpiar",
+    "El administrador ya puede auditar los cierres de caja: ve la diferencia entre lo contado y lo que dice el sistema, y deja constancia de la revision. El cajero no audita sus propios turnos",
+    "El editor de la pagina web ahora muestra la web de verdad al costado y se actualiza mientras se escribe. Se agrego galeria de fotos con carrusel",
+    "Correccion: la pantalla de ingreso toma la base de datos del propio servidor. Antes iba escrita en el archivo y una actualizacion mal hecha podia dejar al hotel sin poder entrar"
   ],
-  "url_descarga": "https://github.com/gabantos/hotelvip-releases/releases/download/v2.0.4/HotelVip_v2.0.4.zip"
+  "url_descarga": "https://github.com/gabantos/hotelvip-releases/releases/download/v2.0.5/HotelVip_v2.0.5.zip"
 }

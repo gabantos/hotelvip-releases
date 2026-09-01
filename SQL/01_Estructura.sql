@@ -72,6 +72,9 @@ CREATE TABLE IF NOT EXISTS cfg_Hotel (
   IGV_Nacional       DECIMAL(5,2) DEFAULT 18.00,
   IGV_Extranjero     DECIMAL(5,2) DEFAULT 0.00,
   MaxHuespedes       INT          DEFAULT 100,
+  -- Cuanto tarda dejar lista una habitacion despues de una salida. Con esto
+  -- Recepcion sabe desde que hora la puede volver a vender.
+  MinutosLimpieza    INT          NOT NULL DEFAULT 45,
   DiasMaxReserva     INT          NOT NULL DEFAULT 365,
   -- Pro7 (facturacion electronica)
   Pro7ApiUrl         VARCHAR(200),
@@ -97,6 +100,9 @@ CREATE TABLE IF NOT EXISTS cfg_TiposHabitacion (
   Capacidad   INT          NOT NULL DEFAULT 2,
   CapacidadMax INT         NOT NULL DEFAULT 4,
   Amenidades  VARCHAR(300),
+  -- Propio de este tipo (una suite no se limpia en el mismo tiempo que una
+  -- simple). NULL = se usa el del hotel.
+  MinutosLimpieza INT      NULL,
   Activo      TINYINT(1)   NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
@@ -189,6 +195,9 @@ CREATE TABLE IF NOT EXISTS hot_Habitaciones (
   IdTipo          INT,
   Estado          ENUM('Disponible','Ocupada','Mantenimiento','Bloqueada') NOT NULL DEFAULT 'Disponible',
   EstadoLimpieza  ENUM('Limpia','Sucia','EnLimpieza','Inspeccion') NOT NULL DEFAULT 'Limpia',
+  -- Salida ya confirmada con el huesped: desde esta hora la habitacion se
+  -- puede vender aunque el huesped siga adentro.
+  LibreDesde      DATETIME,
   FechaEstado     DATETIME,
   IdUsuarioEstado INT,
   Observaciones   TEXT,
@@ -367,6 +376,11 @@ CREATE TABLE IF NOT EXISTS caj_TurnoCaja (
   SaldoFinalSist DECIMAL(10,2),
   Diferencia     DECIMAL(10,2),
   Observaciones  TEXT,
+  -- Auditoria: constancia de que el administrador reviso el cierre y que
+  -- explicacion se le dio a la diferencia.
+  RevisadoPor    INT,
+  FechaRevision  DATETIME,
+  NotaRevision   TEXT,
   FOREIGN KEY (IdCaja) REFERENCES caj_Cajas(IdCaja)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
