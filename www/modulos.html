@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotelVIP — Modulos del sistema</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* ══ Hub de modulos: todo el sistema en una sola pantalla, agrupado
+       por para-que-sirve y no por como esta programado. Mismo patron que
+       usamos en RestaurantVip. ══ */
+
+    .hub-intro { margin-bottom: 26px; }
+    .hub-intro h1 {
+      font-size: 26px; font-weight: 700; margin: 0 0 6px;
+      letter-spacing: -.02em;
+    }
+    .hub-intro p { color: var(--text-faint); font-size: 14.5px; margin: 0; max-width: 70ch; }
+
+    /* Barra "ver como": el admin previsualiza lo que ve cada cargo */
+    .vercomo {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      margin: 18px 0 4px; padding: 11px 14px;
+      background: rgba(255,255,255,.03); border: 1px solid var(--border);
+      border-radius: 9px;
+    }
+    .vercomo-lbl {
+      font-size: 11px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--text-faint); margin-right: 4px;
+    }
+    .vercomo-pill {
+      padding: 5px 13px; border-radius: 999px; cursor: pointer;
+      font-size: 12.5px; font-weight: 600; color: var(--text-soft);
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.11);
+      transition: all .12s;
+    }
+    .vercomo-pill:hover { background: rgba(255,255,255,.09); }
+    .vercomo-pill.active {
+      background: rgba(56,132,255,.18); border-color: var(--accent); color: var(--accent);
+    }
+    .vercomo-hint { font-size: 12.5px; color: var(--yellow); margin-left: auto; }
+
+    /* Segmentos */
+    .seg { margin-bottom: 34px; }
+    .seg-cab { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+    .seg-tit {
+      font-size: 12px; font-weight: 800; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--accent);
+    }
+    .seg-linea { flex: 1; height: 1px; background: var(--border); }
+    .seg-desc { font-size: 13px; color: var(--text-faint); margin: 0 0 14px; }
+
+    .hub-grid {
+      display: grid; gap: 14px;
+      grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+    }
+
+    .mod {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 11px; padding: 16px 17px 14px;
+      display: flex; flex-direction: column; gap: 9px;
+      position: relative; overflow: hidden;
+      transition: transform .12s, box-shadow .12s, border-color .12s;
+    }
+    .mod::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: var(--c);
+    }
+    .mod:hover {
+      transform: translateY(-2px); border-color: rgba(255,255,255,.2);
+      box-shadow: 0 10px 26px -12px rgba(0,0,0,.5);
+    }
+    .mod-top { display: flex; align-items: flex-start; gap: 11px; }
+    .mod-ico {
+      width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: var(--c);
+      background: color-mix(in srgb, var(--c) 16%, transparent);
+    }
+    .mod-nom { font-size: 15px; font-weight: 700; line-height: 1.25; }
+    .mod-desc { font-size: 12.5px; color: var(--text-faint); line-height: 1.45; flex: 1; }
+
+    .mod-pie { display: flex; gap: 7px; margin-top: 2px; }
+    .mod-btn {
+      flex: 1; text-align: center; padding: 7px 10px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600; text-decoration: none;
+      border: 1px solid transparent; cursor: pointer; transition: all .12s;
+    }
+    .mod-btn.usar {
+      background: color-mix(in srgb, var(--c) 20%, transparent);
+      color: var(--c); border-color: color-mix(in srgb, var(--c) 34%, transparent);
+    }
+    .mod-btn.usar:hover { background: color-mix(in srgb, var(--c) 30%, transparent); }
+    .mod-btn.cfg {
+      background: rgba(255,255,255,.05); color: var(--text-soft);
+      border-color: rgba(255,255,255,.12);
+    }
+    .mod-btn.cfg:hover { background: rgba(255,255,255,.1); }
+
+    /* Etiquetas de estado del modulo */
+    .mod-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+    .tag {
+      font-size: 9.5px; font-weight: 800; letter-spacing: .05em;
+      text-transform: uppercase; padding: 2px 7px; border-radius: 4px;
+    }
+    .tag.apagado { background: rgba(148,163,184,.16); color: #94a3b8; }
+    .tag.nube    { background: rgba(56,132,255,.16); color: #6ba6ff; }
+    .tag.admin   { background: rgba(245,158,11,.16); color: #f5b642; }
+
+    .mod.off { opacity: .52; }
+    .mod.off:hover { transform: none; }
+
+    .hub-vacio {
+      grid-column: 1/-1; text-align: center; padding: 34px;
+      color: var(--text-faint); font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <div class="hub-intro">
+        <h1>Modulos del sistema</h1>
+        <p>Todo lo que hace el hotel, en un solo lugar. Cada tarjeta se abre para
+           trabajar o para configurarla. Solo se muestran los modulos activos y
+           los que le corresponden a su cargo.</p>
+      </div>
+
+      <div class="vercomo" id="verComo" style="display:none">
+        <span class="vercomo-lbl">Ver como</span>
+        <div class="vercomo-pill active" data-rol="ADMIN"        onclick="verComo('ADMIN')">Administrador</div>
+        <div class="vercomo-pill"        data-rol="SUPERVISOR"   onclick="verComo('SUPERVISOR')">Supervisor</div>
+        <div class="vercomo-pill"        data-rol="RECEPCION"    onclick="verComo('RECEPCION')">Recepcion</div>
+        <div class="vercomo-pill"        data-rol="CAJA"         onclick="verComo('CAJA')">Caja</div>
+        <div class="vercomo-pill"        data-rol="HOUSEKEEPING" onclick="verComo('HOUSEKEEPING')">Housekeeping</div>
+        <span class="vercomo-hint" id="verComoHint"></span>
+      </div>
+
+      <div id="hubContenido">
+        <div class="hub-vacio"><i class="fa-solid fa-spinner fa-spin"></i> Cargando modulos...</div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="js/core/api.js"></script>
+<script src="js/core/layout.js"></script>
+<script>
+initLayout('modulos');
+
+/* ══════════════════════════════════════════════════════════════
+   Los modulos del hotel, agrupados por PARA QUE SIRVEN.
+
+   permiso : el modulo de la matriz de permisos (Core/UPermisos.pas).
+             Si el cargo no lo tiene, la tarjeta no se muestra.
+   flag    : nombre en Configuracion > Modulos. Si esta apagado, la
+             tarjeta sale en gris y no se puede entrar.
+   usar    : pantalla de trabajo diario.
+   config  : pantalla para configurarlo (opcional).
+══════════════════════════════════════════════════════════════ */
+const SEGMENTOS = [
+  {
+    titulo: 'Operacion diaria',
+    desc: 'Lo que se usa todos los dias en el mostrador.',
+    mods: [
+      { nom:'Recepcion',    ico:'fa-bed',            c:'#10b981', permiso:'recepcion',
+        desc:'Mapa de habitaciones, check-in, check-out y cobro.', usar:'recepcion.html' },
+      { nom:'Reservas',     ico:'fa-calendar-check', c:'#3b82f6', permiso:'reservas', flag:'reservas',
+        desc:'Calendario del mes y alta de reservas.', usar:'reservas.html' },
+      { nom:'Huespedes',    ico:'fa-users',          c:'#8b5cf6', permiso:'huespedes',
+        desc:'Fichas, historial de estancias y preferencias.', usar:'huespedes.html' },
+      { nom:'Caja',         ico:'fa-cash-register',  c:'#f59e0b', permiso:'caja',
+        desc:'Turnos, cobros y cierre del dia.', usar:'caja.html' },
+      { nom:'Housekeeping', ico:'fa-broom',          c:'#06b6d4', permiso:'housekeeping', flag:'housekeeping',
+        desc:'Tareas de limpieza, camareras y objetos olvidados.', usar:'housekeeping.html' },
+      { nom:'Servicios',    ico:'fa-concierge-bell', c:'#ec4899', permiso:'servicios', flag:'servicios',
+        desc:'Frigobar, lavanderia y consumos a la cuenta.', usar:'servicios.html' },
+    ],
+  },
+  {
+    titulo: 'Ventas y canales',
+    desc: 'Por donde entran los huespedes que no llegan al mostrador.',
+    mods: [
+      { nom:'Canales',      ico:'fa-satellite-dish', c:'#6366f1', permiso:'channel', flag:'canales',
+        desc:'Reservas de su pagina web, Booking y Airbnb.', usar:'channel.html' },
+      { nom:'Agencias',     ico:'fa-handshake',      c:'#14b8a6', permiso:'agencias',
+        desc:'Convenios, tarifas y liquidacion de comisiones.', usar:'agencias.html' },
+      { nom:'Facturacion',  ico:'fa-file-invoice',   c:'#ef4444', permiso:'facturacion', flag:'facturacion',
+        desc:'Boletas y facturas electronicas.', usar:'facturacion.html' },
+    ],
+  },
+  {
+    titulo: 'Como va el hotel',
+    desc: 'Los numeros del negocio.',
+    mods: [
+      { nom:'Administracion', ico:'fa-chart-line',   c:'#3b82f6', permiso:'admin',
+        desc:'Ocupacion, ingresos, huespedes y respaldos.', usar:'admin.html' },
+      { nom:'Reportes',       ico:'fa-chart-pie',    c:'#a855f7', permiso:'reportes', flag:'reportes',
+        desc:'Reportes de caja, ocupacion y servicios.', usar:'reportes.html' },
+      { nom:'Sincronizacion', ico:'fa-cloud-arrow-up', c:'#0ea5e9', permiso:'sincronizacion', flag:'sincronizacion',
+        desc:'Enlace con su pagina web en internet.', usar:'sincronizacion.html', nube:true },
+    ],
+  },
+  {
+    titulo: 'Configurar el hotel',
+    desc: 'Se toca al instalar y cuando cambia algo del hotel.',
+    soloAdmin: true,
+    mods: [
+      { nom:'Habitaciones y tarifas', ico:'fa-door-open', c:'#10b981', permiso:'configuracion',
+        desc:'Pisos, tipos de habitacion, precios y amenidades.',
+        usar:'configuracion.html#habitaciones' },
+      { nom:'Datos de la empresa',    ico:'fa-building',  c:'#f59e0b', permiso:'configuracion',
+        desc:'Nombre, RUC, direccion y telefono del hotel.',
+        usar:'configuracion.html#empresa' },
+      { nom:'Usuarios y permisos',    ico:'fa-user-shield', c:'#ef4444', permiso:'configuracion',
+        desc:'Quien entra al sistema y que puede ver cada cargo.',
+        usar:'admin.html#usuarios' },
+      { nom:'Consulta de documentos', ico:'fa-id-card',   c:'#8b5cf6', permiso:'configuracion',
+        desc:'Buscar por DNI y RUC al registrar huespedes.',
+        usar:'configuracion.html#documentos' },
+      { nom:'Impresion',              ico:'fa-print',     c:'#64748b', permiso:'configuracion',
+        desc:'Impresora de comprobantes y formato del ticket.',
+        usar:'configuracion.html#impresion' },
+      { nom:'Modulos activos',        ico:'fa-toggle-on', c:'#14b8a6', permiso:'configuracion',
+        desc:'Encender o apagar partes del sistema que no usa.',
+        usar:'configuracion.html#modulos' },
+    ],
+  },
+];
+
+let rolReal = 'ADMIN';
+let rolVista = '';   // cuando el admin previsualiza otro cargo
+
+// Modulos que le tocan a cada cargo. Es el espejo de Core/UPermisos.pas:
+// el frontend esconde, pero el backend es el que de verdad bloquea.
+const PERMISOS_ROL = {
+  ADMIN:        null,   // todo
+  SUPERVISOR:   ['recepcion','reservas','huespedes','caja','housekeeping','servicios',
+                 'agencias','channel','facturacion','admin','reportes','sincronizacion'],
+  RECEPCION:    ['recepcion','reservas','huespedes','servicios'],
+  CAJA:         ['caja','facturacion','huespedes'],
+  HOUSEKEEPING: ['housekeeping'],
+};
+
+let flags = {};   // modulos encendidos/apagados
+
+function puede(permiso) {
+  const rol = rolVista || rolReal;
+  const lista = PERMISOS_ROL[rol];
+  if (lista === null || lista === undefined) return rol === 'ADMIN';
+  return lista.includes(permiso);
+}
+
+function moduloActivo(flag) {
+  if (!flag) return true;                 // sin flag = siempre activo
+  return flags[flag] !== false;           // solo se apaga si viene explicitamente false
+}
+
+function tarjeta(m) {
+  const activo = moduloActivo(m.flag);
+  const tags = [];
+  if (!activo)  tags.push('<span class="tag apagado">Apagado</span>');
+  if (m.nube)   tags.push('<span class="tag nube">Necesita internet</span>');
+
+  const btnUsar = activo
+    ? `<a class="mod-btn usar" href="${m.usar}">Abrir</a>`
+    : `<span class="mod-btn cfg" title="Actívelo en Modulos activos">Apagado</span>`;
+  const btnCfg = m.config && activo
+    ? `<a class="mod-btn cfg" href="${m.config}">Configurar</a>` : '';
+
+  return `
+    <div class="mod ${activo ? '' : 'off'}" style="--c:${m.c}">
+      <div class="mod-top">
+        <div class="mod-ico"><i class="fa-solid ${m.ico}"></i></div>
+        <div>
+          <div class="mod-nom">${m.nom}</div>
+          ${tags.length ? `<div class="mod-tags" style="margin-top:5px">${tags.join('')}</div>` : ''}
+        </div>
+      </div>
+      <div class="mod-desc">${m.desc}</div>
+      <div class="mod-pie">${btnUsar}${btnCfg}</div>
+    </div>`;
+}
+
+function render() {
+  const cont = document.getElementById('hubContenido');
+  const rol = rolVista || rolReal;
+  let html = '';
+
+  for (const seg of SEGMENTOS) {
+    // Un segmento marcado como soloAdmin no se le muestra a los demas cargos
+    if (seg.soloAdmin && rol !== 'ADMIN') continue;
+    const visibles = seg.mods.filter(m => puede(m.permiso));
+    if (!visibles.length) continue;
+
+    html += `
+      <div class="seg">
+        <div class="seg-cab">
+          <span class="seg-tit">${seg.titulo}</span>
+          ${seg.soloAdmin ? '<span class="tag admin">Solo administrador</span>' : ''}
+          <span class="seg-linea"></span>
+        </div>
+        <p class="seg-desc">${seg.desc}</p>
+        <div class="hub-grid">${visibles.map(tarjeta).join('')}</div>
+      </div>`;
+  }
+
+  cont.innerHTML = html || `<div class="hub-vacio">Su cargo no tiene modulos asignados. Consulte con el administrador del hotel.</div>`;
+}
+
+function verComo(rol) {
+  rolVista = (rol === rolReal) ? '' : rol;
+  document.querySelectorAll('.vercomo-pill').forEach(p =>
+    p.classList.toggle('active', p.dataset.rol === rol));
+  document.getElementById('verComoHint').textContent = rolVista
+    ? `Esta viendo lo que ve ${rol}. Usted sigue siendo administrador.`
+    : '';
+  render();
+}
+
+(async function init() {
+  try {
+    const u = JSON.parse(localStorage.getItem('hv_usuario') || '{}');
+    rolReal = u.rol || 'ADMIN';
+  } catch (e) {}
+
+  // El admin puede previsualizar el sistema con los ojos de cada cargo
+  if (rolReal === 'ADMIN') document.getElementById('verComo').style.display = 'flex';
+
+  // Que modulos estan encendidos
+  try {
+    const r = await api.get('/rep/config-modulos');
+    flags = (r && r.data) ? r.data : {};
+  } catch (e) { flags = {}; }
+
+  render();
+})();
+</script>
+</body>
+</html>

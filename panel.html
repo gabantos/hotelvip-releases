@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mis hoteles</title>
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<style>
+  /* Panel del dueño: se abre desde el celular en cualquier parte del mundo,
+     asi que todo tiene que leerse de un vistazo y a una sola columna. */
+  :root {
+    --fondo:#0f1720; --panel:#17222d; --panel2:#1d2b38;
+    --linea:#2a3b4a; --texto:#e8eef2; --suave:#9db0bf; --tenue:#6b8296;
+    --oro:#c9a227; --azul:#4a9fd8;
+    --verde:#3fb27f; --ambar:#e0a458; --rojo:#e0645c;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+    background:var(--fondo); color:var(--texto); min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .oculto { display:none !important; }
+
+  /* ── Ingreso ── */
+  .login-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .login {
+    width:100%; max-width:380px; background:var(--panel);
+    border:1px solid var(--linea); border-radius:14px; padding:34px 30px;
+  }
+  .login-marca { text-align:center; margin-bottom:26px; }
+  .login-marca .n { font-size:23px; font-weight:300; letter-spacing:3px; }
+  .login-marca .n b { font-weight:700; color:var(--oro); }
+  .login-marca .s { font-size:12px; color:var(--tenue); margin-top:6px; letter-spacing:.5px; }
+  .campo { margin-bottom:15px; }
+  .campo label {
+    display:block; font-size:11px; text-transform:uppercase; letter-spacing:.9px;
+    color:var(--suave); margin-bottom:6px;
+  }
+  .campo input {
+    width:100%; padding:12px 14px; border-radius:8px; font-size:15px;
+    background:var(--panel2); border:1px solid var(--linea); color:var(--texto);
+  }
+  .campo input:focus { outline:none; border-color:var(--oro); }
+  .btn {
+    width:100%; padding:13px; border:0; border-radius:8px; cursor:pointer;
+    background:var(--oro); color:#1a1408; font-size:15px; font-weight:700;
+    letter-spacing:.3px; transition:filter .15s;
+  }
+  .btn:hover { filter:brightness(1.08); }
+  .btn[disabled] { opacity:.55; cursor:wait; }
+  .error {
+    background:rgba(224,100,92,.13); border:1px solid rgba(224,100,92,.3);
+    color:#f0a5a0; border-radius:8px; padding:11px 13px; font-size:13.5px;
+    margin-bottom:15px; display:none;
+  }
+  .error.ver { display:block; }
+
+  /* ── Cabecera ── */
+  .cab {
+    background:var(--panel); border-bottom:1px solid var(--linea);
+    padding:15px 20px; display:flex; align-items:center; gap:14px;
+    position:sticky; top:0; z-index:10; flex-wrap:wrap;
+  }
+  .cab .marca { font-size:16px; font-weight:300; letter-spacing:2px; }
+  .cab .marca b { font-weight:700; color:var(--oro); }
+  .cab .quien { margin-left:auto; text-align:right; font-size:13px; }
+  .cab .quien .nom { font-weight:600; }
+  .cab .quien .fec { color:var(--tenue); font-size:11.5px; }
+  .salir {
+    background:transparent; border:1px solid var(--linea); color:var(--suave);
+    padding:7px 13px; border-radius:7px; cursor:pointer; font-size:12.5px;
+  }
+  .salir:hover { border-color:var(--rojo); color:var(--rojo); }
+
+  .cont { max-width:1200px; margin:0 auto; padding:22px 20px 60px; }
+
+  .actualizado {
+    display:flex; align-items:center; gap:8px; font-size:12.5px;
+    color:var(--tenue); margin-bottom:16px;
+  }
+  .punto { width:7px; height:7px; border-radius:50%; background:var(--verde); }
+
+  /* ── Tarjeta de hotel ── */
+  .hoteles { display:grid; gap:18px; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); }
+  .hotel {
+    background:var(--panel); border:1px solid var(--linea);
+    border-radius:13px; overflow:hidden;
+  }
+  .hotel-cab {
+    padding:15px 18px; border-bottom:1px solid var(--linea);
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .hotel-nom { font-size:16px; font-weight:600; flex:1; min-width:0; }
+  .estado {
+    font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    padding:3px 9px; border-radius:999px; white-space:nowrap;
+  }
+  .estado.on  { background:rgba(63,178,127,.16); color:var(--verde); }
+  .estado.off { background:rgba(224,100,92,.16); color:var(--rojo); }
+
+  /* Ocupación: el número que el dueño mira primero */
+  .ocup { padding:20px 18px 16px; text-align:center; border-bottom:1px solid var(--linea); }
+  .ocup-num { font-size:46px; font-weight:200; line-height:1; letter-spacing:-2px; }
+  .ocup-num small { font-size:20px; color:var(--tenue); }
+  .ocup-lbl { font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--tenue); margin-top:5px; }
+  .barra { height:5px; background:var(--panel2); border-radius:3px; margin-top:13px; overflow:hidden; }
+  .barra span { display:block; height:100%; background:var(--azul); border-radius:3px; transition:width .5s; }
+  .ocup-det { font-size:12.5px; color:var(--suave); margin-top:9px; }
+
+  .datos { display:grid; grid-template-columns:1fr 1fr; }
+  .dato { padding:13px 18px; border-bottom:1px solid var(--linea); }
+  .dato:nth-child(odd) { border-right:1px solid var(--linea); }
+  .dato .v { font-size:19px; font-weight:600; }
+  .dato .v.dinero { color:var(--verde); }
+  .dato .v.debe { color:var(--ambar); }
+  .dato .l { font-size:10.5px; text-transform:uppercase; letter-spacing:.7px; color:var(--tenue); margin-top:3px; }
+
+  .alertas { padding:12px 18px; display:flex; flex-wrap:wrap; gap:7px; }
+  .alerta {
+    font-size:12px; padding:5px 11px; border-radius:999px; font-weight:600;
+  }
+  .alerta.roja  { background:rgba(224,100,92,.14); color:var(--rojo); }
+  .alerta.ambar { background:rgba(224,164,88,.14); color:var(--ambar); }
+  .alerta.ok    { background:rgba(63,178,127,.12); color:var(--verde); }
+
+  .sin-datos { padding:26px 18px; text-align:center; color:var(--tenue); font-size:13.5px; }
+
+  /* ── Totales de todos los hoteles juntos ── */
+  .totales {
+    background:linear-gradient(135deg,#1a2836,#17222d);
+    border:1px solid var(--linea); border-radius:13px;
+    padding:18px 20px; margin-bottom:20px;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:16px;
+  }
+  .tot .v { font-size:25px; font-weight:600; }
+  .tot .v.dinero { color:var(--verde); }
+  .tot .l { font-size:10.5px; text-transform:uppercase; letter-spacing:.8px; color:var(--tenue); margin-top:2px; }
+  .totales-tit {
+    grid-column:1/-1; font-size:11px; text-transform:uppercase;
+    letter-spacing:1.1px; color:var(--oro); margin-bottom:-6px;
+  }
+
+  .cargando { text-align:center; padding:50px; color:var(--tenue); }
+  .pie { text-align:center; font-size:11.5px; color:#5a6b7a; padding:26px 20px; }
+
+  @media (max-width:600px) {
+    .cab { padding:12px 15px; }
+    .cont { padding:16px 14px 40px; }
+    .ocup-num { font-size:40px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ INGRESO ══ -->
+<div class="login-wrap" id="vLogin">
+  <form class="login" onsubmit="entrar(event)">
+    <div class="login-marca">
+      <div class="n">Hotel<b>VIP</b></div>
+      <div class="s">Panel del propietario</div>
+    </div>
+    <div class="error" id="errLogin"></div>
+    <div class="campo">
+      <label>Usuario</label>
+      <input id="usuario" autocomplete="username" autocapitalize="off" required>
+    </div>
+    <div class="campo">
+      <label>Clave</label>
+      <input id="clave" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="btn" id="btnEntrar" type="submit">Entrar</button>
+  </form>
+</div>
+
+<!-- ══ PANEL ══ -->
+<div class="oculto" id="vPanel">
+  <div class="cab">
+    <div class="marca">Hotel<b>VIP</b></div>
+    <div class="quien">
+      <div class="nom" id="pNombre"></div>
+      <div class="fec" id="pFecha"></div>
+    </div>
+    <button class="salir" onclick="salir()">Salir</button>
+  </div>
+
+  <div class="cont">
+    <div class="actualizado">
+      <span class="punto"></span>
+      <span id="pActualizado">Actualizando...</span>
+    </div>
+    <div id="pTotales"></div>
+    <div class="hoteles" id="pHoteles">
+      <div class="cargando">Cargando sus hoteles...</div>
+    </div>
+  </div>
+
+  <div class="pie">HotelVIP &middot; SistemasVIP Cusco</div>
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('hv_panel_token') || '';
+let timer = null;
+
+function fSoles(n) {
+  return 'S/ ' + Number(n || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function entrar(ev) {
+  ev.preventDefault();
+  const btn = document.getElementById('btnEntrar');
+  const err = document.getElementById('errLogin');
+  err.classList.remove('ver');
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/panel/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario: document.getElementById('usuario').value.trim(),
+        clave:   document.getElementById('clave').value,
+      }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!j.success) throw new Error(j.error || 'No se pudo entrar');
+    token = j.token;
+    localStorage.setItem('hv_panel_token', token);
+    mostrarPanel();
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.add('ver');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function salir() {
+  localStorage.removeItem('hv_panel_token');
+  token = '';
+  if (timer) clearInterval(timer);
+  document.getElementById('vPanel').classList.add('oculto');
+  document.getElementById('vLogin').classList.remove('oculto');
+  document.getElementById('clave').value = '';
+}
+
+function mostrarPanel() {
+  document.getElementById('vLogin').classList.add('oculto');
+  document.getElementById('vPanel').classList.remove('oculto');
+  cargar();
+  // Se refresca solo: el dueño deja la pantalla abierta y ve como avanza el dia
+  if (timer) clearInterval(timer);
+  timer = setInterval(cargar, 60000);
+}
+
+async function cargar() {
+  try {
+    const r = await fetch(`${API}/api/panel/resumen`, {
+      headers: { 'Authorization': 'Bearer ' + token },
+    });
+    if (r.status === 401) { salir(); return; }
+    const j = await r.json().catch(() => ({}));
+    if (!j.success) throw new Error(j.error || 'Error');
+
+    document.getElementById('pNombre').textContent = j.usuario;
+    document.getElementById('pFecha').textContent  = fechaLarga(j.fecha);
+    document.getElementById('pActualizado').textContent =
+      'Actualizado ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+
+    pintarTotales(j.hoteles);
+    pintarHoteles(j.hoteles);
+  } catch (e) {
+    document.getElementById('pActualizado').textContent = 'Sin conexion. Reintentando...';
+  }
+}
+
+function fechaLarga(iso) {
+  if (!iso) return '';
+  const [a, m, d] = iso.split('-');
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio',
+                 'agosto','setiembre','octubre','noviembre','diciembre'];
+  return `${parseInt(d)} de ${meses[parseInt(m) - 1]} de ${a}`;
+}
+
+// Con dos o mas hoteles, el dueño quiere el consolidado antes que el detalle
+function pintarTotales(hs) {
+  const cont = document.getElementById('pTotales');
+  if (!hs || hs.length < 2) { cont.innerHTML = ''; return; }
+  const t = hs.reduce((a, h) => ({
+    habs:  a.habs  + h.habsTotal,
+    ocup:  a.ocup  + h.habsOcupadas,
+    hues:  a.hues  + h.huespedes,
+    ingr:  a.ingr  + h.ingresos,
+    cobr:  a.cobr  + h.porCobrar,
+  }), { habs:0, ocup:0, hues:0, ingr:0, cobr:0 });
+  const pct = t.habs ? Math.round(t.ocup * 100 / t.habs) : 0;
+
+  cont.innerHTML = `
+    <div class="totales">
+      <div class="totales-tit">Todos sus hoteles</div>
+      <div class="tot"><div class="v">${pct}%</div><div class="l">Ocupacion</div></div>
+      <div class="tot"><div class="v">${t.ocup} / ${t.habs}</div><div class="l">Habitaciones</div></div>
+      <div class="tot"><div class="v">${t.hues}</div><div class="l">Huespedes</div></div>
+      <div class="tot"><div class="v dinero">${fSoles(t.ingr)}</div><div class="l">Cobrado hoy</div></div>
+      <div class="tot"><div class="v">${fSoles(t.cobr)}</div><div class="l">Por cobrar</div></div>
+    </div>`;
+}
+
+function pintarHoteles(hs) {
+  const cont = document.getElementById('pHoteles');
+  if (!hs || !hs.length) {
+    cont.innerHTML = `<div class="cargando">No tiene hoteles asignados. Consulte con SistemasVIP.</div>`;
+    return;
+  }
+
+  cont.innerHTML = hs.map(h => {
+    // Alertas: solo se muestran las que necesitan que alguien haga algo
+    const al = [];
+    if (h.vencidos > 0)
+      al.push(`<span class="alerta roja">${h.vencidos} deben salir</span>`);
+    if (h.webPendientes > 0)
+      al.push(`<span class="alerta ambar">${h.webPendientes} reserva${h.webPendientes>1?'s':''} web sin atender</span>`);
+    if (h.limpiezas > 0)
+      al.push(`<span class="alerta ambar">${h.limpiezas} por limpiar</span>`);
+    if (h.habsMantto > 0)
+      al.push(`<span class="alerta ambar">${h.habsMantto} en mantenimiento</span>`);
+    if (!al.length) al.push(`<span class="alerta ok">Todo al dia</span>`);
+
+    if (h.sinDatos) {
+      return `
+        <div class="hotel">
+          <div class="hotel-cab">
+            <div class="hotel-nom">${esc(h.nombre)}</div>
+            <span class="estado off">Sin reportar</span>
+          </div>
+          <div class="sin-datos">
+            Este hotel todavia no envio datos de hoy.<br>
+            Revise que la computadora de recepcion este encendida y con internet.
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div class="hotel">
+        <div class="hotel-cab">
+          <div class="hotel-nom">${esc(h.nombre)}</div>
+          <span class="estado ${h.enLinea ? 'on' : 'off'}">
+            ${h.enLinea ? 'En linea' : 'Sin conexion'}</span>
+        </div>
+
+        <div class="ocup">
+          <div class="ocup-num">${h.ocupacion}<small>%</small></div>
+          <div class="ocup-lbl">Ocupacion</div>
+          <div class="barra"><span style="width:${h.ocupacion}%"></span></div>
+          <div class="ocup-det">${h.habsOcupadas} ocupadas &middot; ${h.habsDisponibles} libres &middot; ${h.habsTotal} en total</div>
+        </div>
+
+        <div class="datos">
+          <div class="dato"><div class="v dinero">${fSoles(h.ingresos)}</div><div class="l">Cobrado hoy</div></div>
+          <div class="dato"><div class="v debe">${fSoles(h.porCobrar)}</div><div class="l">Por cobrar</div></div>
+          <div class="dato"><div class="v">${h.huespedes}</div><div class="l">Huespedes alojados</div></div>
+          <div class="dato"><div class="v">${h.checkins} / ${h.checkouts}</div><div class="l">Entradas / salidas</div></div>
+        </div>
+
+        <div class="alertas">${al.join('')}</div>
+      </div>`;
+  }).join('');
+}
+
+// Si ya habia sesion, se entra directo
+if (token) mostrarPanel();
+</script>
+</body>
+</html>

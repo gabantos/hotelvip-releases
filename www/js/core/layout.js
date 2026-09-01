@@ -3,6 +3,7 @@
 // Incluir en TODAS las paginas (excepto login.html)
 
 const MODULES = {
+  modulos:        { title: 'Modulos del sistema', icon: 'fa-grip' },
   recepcion:      { title: 'Recepcion',       icon: 'fa-door-open' },
   reservas:       { title: 'Reservas',        icon: 'fa-calendar-days' },
   huespedes:      { title: 'Huespedes',       icon: 'fa-users' },
@@ -25,6 +26,10 @@ function buildSidebar() {
       <div class="brand-name">Hotel<span style="color:var(--accent)">VIP</span></div>
       <div class="brand-sub">SistemasVIP</div>
     </div>
+  </div>
+
+  <div class="nav-section">
+    <a href="modulos.html"        class="nav-item" data-module="modulos"><i class="fa-solid fa-grip"></i>Todos los m&#xF3;dulos</a>
   </div>
 
   <div class="nav-section">
@@ -77,6 +82,8 @@ function buildHeader(activeModule) {
 // Ojo que no siempre coinciden: 'sincronizacion' y 'channel' son la misma
 // familia, y 'admin' agrupa reportes + usuarios.
 const PERMISO_DE_PAGINA = {
+  // El hub lo ve cualquiera: adentro solo aparecen los modulos de su cargo
+  modulos:        null,
   recepcion:      'recepcion',
   reservas:       'reservas',
   huespedes:      'huespedes',

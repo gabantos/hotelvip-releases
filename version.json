@@ -1,13 +1,12 @@
 {
-  "version": "2.0.1",
-  "fecha": "2026-08-20",
+  "version": "2.0.2",
+  "fecha": "2026-08-31",
   "changelog": [
-    "Auditoria pre-despliegue completa: 240 llamadas de prueba en 3 instalaciones, cero errores de base",
-    "Correccion: ficha de habitacion fallaba por columna inexistente en amenidades",
-    "Correccion: lista de insumos de housekeeping fallaba por columna inexistente",
-    "Correccion: la lista y ficha de huespedes fallaban al registrar el primer huesped (mapeo de campos si/no)",
-    "La base de una instalacion nueva queda identica a la de desarrollo, verificado columna por columna",
-    "Este repositorio ahora contiene el sistema completo: instalar = clonar + INSTALAR.bat, actualizar = ACTUALIZAR.bat"
+    "Correccion importante: el servidor mostraba de la nada un cuadro de error (EAccessViolation) y quedaba congelado hasta que alguien lo cerraba. Pasaba cada vez que se cortaba el internet",
+    "Ahora cualquier error queda anotado en el registro y el sistema sigue trabajando, sin cuadros en pantalla delante del huesped",
+    "Nuevo: panel del propietario para ver todos sus hoteles desde el celular o desde el extranjero",
+    "Nuevo: pantalla de modulos, ordenada por area y segun el permiso de cada usuario",
+    "El respaldo diario de la base y el envio de datos a la nube ya no se interrumpen cuando falla la conexion"
   ],
-  "url_descarga": "https://github.com/gabantos/hotelvip-releases/releases/download/v2.0.1/HotelVip_v2.0.1.zip"
+  "url_descarga": "https://github.com/gabantos/hotelvip-releases/releases/download/v2.0.2/HotelVip_v2.0.2.zip"
 }
